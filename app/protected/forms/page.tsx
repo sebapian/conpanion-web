@@ -1,10 +1,30 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, Search } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { CreateFormDialog } from "@/components/forms/create-form-dialog";
+import { getForms } from "@/lib/api/forms";
+import { Form } from "@/lib/types/form";
+import { format } from "date-fns";
+
 export default function FormsPage() {
-  return (
-    <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold text-foreground mb-4">Forms</h1>
-      <p className="text-muted-foreground">
-        Access and manage your construction forms here.
-      </p>
-    </div>
-  );
+  return null;
 } 
