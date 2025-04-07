@@ -133,7 +133,6 @@ export default function TasksPage() {
     } else {
       // Hovering over a task - use the task's status ID rather than task ID
       const overTask = tasks.find(task => task.id === Number(overId));
-      console.log('overTask', overTask);
       if (overTask) {
         setDragOverInfo({
           overTaskId: Number(overId),
@@ -225,31 +224,51 @@ export default function TasksPage() {
       ? Math.max(...tasksInTargetStatus.map(t => t.position || 0)) + 1000
       : 1000;
     
-    // Update in the database
-    await supabase
-      .from('tasks')
-      .update({ status_id: newStatusId })
-      .eq('id', taskId);
-    
-    // Update position in the database
-    await supabase
-      .from('entity_positions')
-      .upsert({
-        entity_id: taskId,
-        entity_type: 'task',
-        context: 'kanban',
-        position: newPosition
-      }, {
-        onConflict: 'entity_id,entity_type,context,user_id',
-        ignoreDuplicates: false
-      });
-    
-    // Optimistically update the local state
-    setTasks(tasks.map(task =>
-      task.id === taskId
-        ? { ...task, status_id: newStatusId, position: newPosition }
-        : task
-    ));
+    try {
+      // First update the task's status
+      await supabase
+        .from('tasks')
+        .update({ status_id: newStatusId })
+        .eq('id', taskId);
+      
+      // Check if position record already exists
+      const { data: existingPosition } = await supabase
+        .from('entity_positions')
+        .select('id')
+        .eq('entity_id', taskId)
+        .eq('entity_type', 'task')
+        .eq('context', 'kanban')
+        .is('user_id', null)
+        .single();
+      
+      if (existingPosition) {
+        // Update existing record
+        await supabase
+          .from('entity_positions')
+          .update({ position: newPosition })
+          .eq('id', existingPosition.id);
+      } else {
+        // Create new record only if needed
+        await supabase
+          .from('entity_positions')
+          .insert({
+            entity_id: taskId,
+            entity_type: 'task',
+            context: 'kanban',
+            position: newPosition,
+            user_id: null // Explicitly set to null for global/shared order
+          });
+      }
+      
+      // Optimistically update the local state
+      setTasks(tasks.map(task =>
+        task.id === taskId
+          ? { ...task, status_id: newStatusId, position: newPosition }
+          : task
+      ));
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
   };
 
   // Update task order within a column
@@ -284,28 +303,110 @@ export default function TasksPage() {
       status_id: statusId,
       position: (index + 1) * 1000
     }));
-    
-    // Find the new position for our moved task
-    const newPosition = (newIndex + 1) * 1000;
-    
-    // Update positions in the database
-    const supabase = getSupabaseClient();
-    
+
     try {
-      // Update the moved task position
-      await supabase
-        .from('entity_positions')
-        .upsert({
-          entity_id: movedTask.id,
-          entity_type: 'task',
-          context: 'kanban',
-          position: newPosition
-        }, {
-          onConflict: 'entity_id,entity_type,context,user_id',
-          ignoreDuplicates: false
-        });
+      const supabase = getSupabaseClient();
+
+      // Direct swap case - when swapping with just one other task
+      if (Math.abs(oldIndex - newIndex) === 1) {
+        const otherTaskIndex = oldIndex < newIndex ? oldIndex + 1 : oldIndex - 1;
+        const otherTask = currentTasks[otherTaskIndex];
+        
+        // Get the positions from our calculated array
+        const movedTaskNewPosition = taskPositions.find(tp => tp.id === movedTask.id)?.position || (newIndex + 1) * 1000;
+        const otherTaskNewPosition = taskPositions.find(tp => tp.id === otherTask.id)?.position || (otherTaskIndex === newIndex ? (newIndex + 1) : (oldIndex + 1)) * 1000;
+        
+        // Update both tasks' positions
+        const { data: movedTaskPos } = await supabase
+          .from('entity_positions')
+          .select('id')
+          .eq('entity_id', movedTask.id)
+          .eq('entity_type', 'task')
+          .eq('context', 'kanban')
+          .is('user_id', null)
+          .single();
+          
+        const { data: otherTaskPos } = await supabase
+          .from('entity_positions')
+          .select('id')
+          .eq('entity_id', otherTask.id)
+          .eq('entity_type', 'task')
+          .eq('context', 'kanban')
+          .is('user_id', null)
+          .single();
+        
+        // Update moved task position
+        if (movedTaskPos) {
+          await supabase
+            .from('entity_positions')
+            .update({ position: movedTaskNewPosition })
+            .eq('id', movedTaskPos.id);
+        } else {
+          await supabase
+            .from('entity_positions')
+            .insert({
+              entity_id: movedTask.id,
+              entity_type: 'task',
+              context: 'kanban',
+              position: movedTaskNewPosition,
+              user_id: null
+            });
+        }
+        
+        // Update other task position
+        if (otherTaskPos) {
+          await supabase
+            .from('entity_positions')
+            .update({ position: otherTaskNewPosition })
+            .eq('id', otherTaskPos.id);
+        } else {
+          await supabase
+            .from('entity_positions')
+            .insert({
+              entity_id: otherTask.id,
+              entity_type: 'task',
+              context: 'kanban',
+              position: otherTaskNewPosition,
+              user_id: null
+            });
+        }
+      } 
+      // Moving more than one position - just update the dragged task for now
+      // A more complete solution would update all affected tasks
+      else {
+        const movedTaskNewPosition = taskPositions.find(tp => tp.id === movedTask.id)?.position || (newIndex + 1) * 1000;
+        
+        // Check if position record already exists for moved task
+        const { data: existingPosition } = await supabase
+          .from('entity_positions')
+          .select('id')
+          .eq('entity_id', movedTask.id)
+          .eq('entity_type', 'task')
+          .eq('context', 'kanban')
+          .is('user_id', null)
+          .single();
+        
+        if (existingPosition) {
+          // Update existing record
+          await supabase
+            .from('entity_positions')
+            .update({ position: movedTaskNewPosition })
+            .eq('id', existingPosition.id);
+        } else {
+          // Create new record only if needed
+          await supabase
+            .from('entity_positions')
+            .insert({
+              entity_id: movedTask.id,
+              entity_type: 'task',
+              context: 'kanban',
+              position: movedTaskNewPosition,
+              user_id: null
+            });
+        }
+      }
       
-      // Optimistically update local state
+      // Optimistically update local state with all new positions
       setTasks(tasks.map(task =>
         taskPositions.some(tp => tp.id === task.id)
           ? { ...task, position: taskPositions.find(tp => tp.id === task.id)!.position }
@@ -617,10 +718,25 @@ function TaskColumn({
     activeId === null || task.id !== Number(activeId)
   );
 
-  // Check if this column is the current drop target
+  // Check if this column is the target for the dragged task
   const isColumnActive = dragOverInfo.overStatusId === status.id;
   const isActiveTaskFromSameColumn = activeId !== null && tasks.some(task => task.id === Number(activeId));
-  const showPlaceholder = isColumnActive && activeId !== null && !isActiveTaskFromSameColumn;
+  
+  // Determine if and where to show placeholder
+  let placeholderIndex = -1;
+  let showPlaceholder = false;
+  
+  if (isColumnActive && activeId !== null) {
+    if (!isActiveTaskFromSameColumn) {
+      // Coming from another column - show placeholder at the end
+      showPlaceholder = true;
+      placeholderIndex = visibleTasks.length;
+    } else if (dragOverInfo.overTaskId !== null) {
+      // Reordering within same column - show placeholder at specific position
+      placeholderIndex = visibleTasks.findIndex(task => task.id === dragOverInfo.overTaskId);
+      showPlaceholder = placeholderIndex !== -1;
+    }
+  }
   
   return (
     <div 
@@ -645,19 +761,25 @@ function TaskColumn({
         strategy={verticalListSortingStrategy}
       >
         <div className="flex-1 space-y-3">
-          {visibleTasks.map((task) => (
-            <SortableTaskCard
-              key={task.id}
-              task={task}
-              isActive={activeId === task.id}
-              allStatuses={allStatuses}
-              allPriorities={allPriorities}
-              refreshTasks={refreshTasks}
-            />
+          {visibleTasks.map((task, index) => (
+            <React.Fragment key={task.id}>
+              {/* Show placeholder before this task if needed */}
+              {showPlaceholder && placeholderIndex === index && (
+                <TaskPlaceholder />
+              )}
+              
+              <SortableTaskCard
+                task={task}
+                isActive={activeId === task.id}
+                allStatuses={allStatuses}
+                allPriorities={allPriorities}
+                refreshTasks={refreshTasks}
+              />
+            </React.Fragment>
           ))}
           
-          {/* Show placeholder if task is being dragged over this column */}
-          {showPlaceholder && (
+          {/* Show placeholder at the end if needed */}
+          {showPlaceholder && placeholderIndex >= visibleTasks.length && (
             <TaskPlaceholder />
           )}
           
