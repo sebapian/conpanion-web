@@ -12,13 +12,16 @@ export function DragPlaceholder({ className, height }: DragPlaceholderProps) {
   return (
     <Card 
       className={cn(
-        "w-full border-2 border-dashed rounded-lg shadow transition-all",
-        "border-blue-500 dark:border-blue-500",
-        "bg-blue-50 dark:bg-blue-500/10",
+        "w-full border-2 border-dashed rounded-lg shadow-md transition-all",
+        "border-blue-500 dark:border-blue-400",
+        "bg-blue-50 dark:bg-blue-500/15",
         "animate-pulse",
         className
       )}
-      style={{ height: height ? `${height}px` : 'auto' }}
+      style={{ 
+        height: height ? `${height}px` : 'auto',
+        minHeight: '120px' // Ensure minimum height
+      }}
     >
       <CardContent className="p-4">
         {/* Title and Priority placeholder */}

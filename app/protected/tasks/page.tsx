@@ -34,6 +34,9 @@ import { cn } from "@/lib/utils"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { Database } from '@/lib/supabase/types.generated'
 
+// Define CSS variables for styling
+const cardHoverBg = 'var(--card-hover-bg, rgba(0, 112, 243, 0.05))';
+
 export default function TasksPage() {
   const { statuses, loading: loadingStatuses } = useTaskStatuses();
   const { priorities, loading: loadingPriorities } = useTaskPriorities();
@@ -119,8 +122,10 @@ export default function TasksPage() {
     const draggedTask = tasks.find(task => task.id === taskId);
     if (draggedTask && draggedTask.status_id !== statusId) {
       try {
+        console.log(`Moving task ${taskId} to status ${statusId}`);
+        
         const supabase = getSupabaseClient();
-        await supabase
+        const { error } = await supabase
           .from('tasks')
           .update({ 
             status_id: statusId,
@@ -128,11 +133,18 @@ export default function TasksPage() {
           })
           .eq('id', taskId);
           
-        // Refresh tasks after successful update
-        refreshTasks();
+        if (error) {
+          console.error('Error updating task status:', error);
+        } else {
+          console.log('Task status updated successfully');
+          // Refresh tasks after successful update
+          refreshTasks();
+        }
       } catch (error) {
-        console.error('Error updating task status:', error);
+        console.error('Exception updating task status:', error);
       }
+    } else {
+      console.log('No status change needed, or task not found');
     }
     
     setActiveTask(null);
@@ -162,9 +174,8 @@ export default function TasksPage() {
         return;
       }
       
-      // At this point, we're hovering over a different status column
-      // The placeholder will be shown automatically thanks to the isOver prop
-      // from useDroppable in the StatusColumn component
+      // Always ensure we can drop into any column
+      // No restrictions on the number of cards per column
     }
   };
 
@@ -442,13 +453,16 @@ function StatusColumn({
       ref={setNodeRef}
       className={cn(
         "relative bg-card border border-border rounded-lg p-4 transition-all duration-200",
-        isOver && isDragging && "ring-1 ring-blue-500 ring-inset"
+        isOver && isDragging && "ring-2 ring-blue-500 ring-inset"
       )}
       style={isDragging ? { 
         // Apply a stable minimum height during any drag operation
         minHeight: `${minColumnHeight}px`,
-        // Only add extra space when hovering
-        ...(isOver ? { paddingBottom: `${dragCardHeight}px` } : {})
+        // Always ensure there's space for a new card at the bottom when dragging
+        ...(isOver ? { 
+          paddingBottom: `${dragCardHeight + 16}px`,
+          background: cardHoverBg
+        } : {})
       } : {}}
     >
       <div className="flex items-center justify-between mb-4">
@@ -511,12 +525,12 @@ function StatusColumn({
           })}
           
           {/* Placeholder for the dragged task */}
-          {isOver && isDragging && (
+          {isDragging && (
             <div 
-              className="absolute bottom-4 left-4 right-4 transition-all duration-150"
+              className={`absolute bottom-4 left-4 right-4 transition-all duration-150 ${isOver ? 'opacity-100' : 'opacity-0'}`}
               style={{ 
-                opacity: isOver ? 1 : 0, 
-                transform: isOver ? 'translateY(0)' : 'translateY(10px)'
+                transform: isOver ? 'translateY(0)' : 'translateY(10px)',
+                zIndex: 5 // Ensure the placeholder is always visible
               }}
             >
               <DragPlaceholder height={dragCardHeight} />

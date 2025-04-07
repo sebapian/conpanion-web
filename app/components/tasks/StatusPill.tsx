@@ -31,7 +31,9 @@ export default function StatusPill({
   const [isOpen, setIsOpen] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [position, setPosition] = useState<'left' | 'right'>('left')
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const badgeRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
   
   // Close dropdown when clicking outside
@@ -47,6 +49,17 @@ export default function StatusPill({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+  
+  // Determine if dropdown should open to the left or right based on available space
+  useEffect(() => {
+    if (isOpen && badgeRef.current) {
+      const rect = badgeRef.current.getBoundingClientRect();
+      const rightSpace = window.innerWidth - rect.right;
+      
+      // If not enough space on the right (less than 200px), position from the right
+      setPosition(rightSpace < 200 ? 'right' : 'left');
+    }
+  }, [isOpen]);
   
   const handleStatusChange = async (newStatus: Status) => {
     if (disabled || newStatus.id === status.id) {
@@ -102,19 +115,21 @@ export default function StatusPill({
   
   return (
     <div className="relative inline-block" ref={dropdownRef}>
-      <Badge 
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        style={{ backgroundColor: status.color || '#E2E8F0' }}
-        className={`text-xs whitespace-nowrap flex items-center gap-1 cursor-pointer ${className} ${disabled ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'}`}
-      >
-        {status.name}
-        {!disabled && <ChevronDown size={12} className={`transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />}
-      </Badge>
+      <div ref={badgeRef}>
+        <Badge 
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          style={{ backgroundColor: status.color || '#E2E8F0' }}
+          className={`text-xs whitespace-nowrap flex items-center gap-1 cursor-pointer ${className} ${disabled ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'}`}
+        >
+          {status.name}
+          {!disabled && <ChevronDown size={12} className={`transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />}
+        </Badge>
+      </div>
       
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-48 bg-gray-800 rounded-md shadow-lg border border-gray-700 py-1 overflow-hidden">
+        <div className={`absolute z-10 mt-1 w-48 bg-card rounded-md shadow-lg border border-border py-1 overflow-hidden ${position === 'right' ? 'right-0' : 'left-0'}`}>
           {error && (
-            <div className="px-3 py-2 text-xs text-red-500 border-b border-gray-700">
+            <div className="px-3 py-2 text-xs text-red-500 border-b border-border">
               {error}
             </div>
           )}
@@ -124,7 +139,7 @@ export default function StatusPill({
               <div
                 key={s.id}
                 onClick={() => handleStatusChange(s)}
-                className="px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
+                className="px-3 py-2 text-xs flex items-center gap-2 hover:bg-muted cursor-pointer"
               >
                 <div 
                   className="w-3 h-3 rounded-full flex-shrink-0"

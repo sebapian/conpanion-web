@@ -255,9 +255,7 @@ BEGIN
         status_id,
         priority_id,
         project_id,
-        created_by,
-        estimated_hours,
-        actual_hours
+        created_by
     ) VALUES
     (
         'Set up project infrastructure',
@@ -265,9 +263,7 @@ BEGIN
         (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'In Progress'),
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'High'),
         v_project_id,
-        v_user_id,
-        8,
-        4
+        v_user_id
     ),
     (
         'Design database schema',
@@ -275,9 +271,7 @@ BEGIN
         (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'Done'),
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'High'),
         v_project_id,
-        v_user_id,
-        4,
-        6
+        v_user_id
     ),
     (
         'Implement user authentication',
@@ -285,9 +279,41 @@ BEGIN
         (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'To Do'),
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Urgent'),
         v_project_id,
-        v_user_id,
-        12,
-        NULL
+        v_user_id
+    );
+    
+    -- Add metadata for tasks
+    INSERT INTO public.task_metadata (task_id, title, value, created_by)
+    VALUES
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Set up project infrastructure' AND created_by = v_user_id),
+        'estimated_hours',
+        '8',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Set up project infrastructure' AND created_by = v_user_id),
+        'actual_hours',
+        '4',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Design database schema' AND created_by = v_user_id),
+        'estimated_hours',
+        '4',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Design database schema' AND created_by = v_user_id),
+        'actual_hours',
+        '6',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Implement user authentication' AND created_by = v_user_id),
+        'estimated_hours',
+        '12',
+        v_user_id
     );
 
     -- Assign tasks to the user
@@ -382,9 +408,7 @@ BEGIN
         status_id,
         priority_id,
         project_id,
-        created_by,
-        estimated_hours,
-        actual_hours
+        created_by
     ) VALUES
     (
         'Create login page',
@@ -392,9 +416,7 @@ BEGIN
         (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'In Development'),
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'High'),
         v_project_id,
-        v_user_id,
-        6,
-        4
+        v_user_id
     ),
     (
         'Set up authentication API',
@@ -402,9 +424,7 @@ BEGIN
         (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'Completed'),
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Critical'),
         v_project_id,
-        v_user_id,
-        8,
-        10
+        v_user_id
     ),
     (
         'Implement user dashboard',
@@ -412,9 +432,41 @@ BEGIN
         (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'Backlog'),
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Medium'),
         v_project_id,
-        v_user_id,
-        12,
-        NULL
+        v_user_id
+    );
+    
+    -- Add metadata for tasks
+    INSERT INTO public.task_metadata (task_id, title, value, created_by)
+    VALUES
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Create login page' AND created_by = v_user_id),
+        'estimated_hours',
+        '6',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Create login page' AND created_by = v_user_id),
+        'actual_hours',
+        '4',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Set up authentication API' AND created_by = v_user_id),
+        'estimated_hours',
+        '8',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Set up authentication API' AND created_by = v_user_id),
+        'actual_hours',
+        '10',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Implement user dashboard' AND created_by = v_user_id),
+        'estimated_hours',
+        '12',
+        v_user_id
     );
 
     -- Assign tasks to the user
@@ -510,8 +562,6 @@ BEGIN
         priority_id,
         project_id,
         created_by,
-        estimated_hours,
-        actual_hours,
         due_date
     ) VALUES
     (
@@ -521,8 +571,6 @@ BEGIN
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Blocker'),
         v_project_id,
         v_user_id,
-        16,
-        6,
         (CURRENT_DATE + INTERVAL '2 weeks')::date
     ),
     (
@@ -532,8 +580,6 @@ BEGIN
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Important'),
         v_project_id,
         v_user_id,
-        8,
-        NULL,
         (CURRENT_DATE + INTERVAL '1 month')::date
     ),
     (
@@ -543,9 +589,41 @@ BEGIN
         (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Normal'),
         v_project_id,
         v_user_id,
-        10,
-        12,
         NULL
+    );
+    
+    -- Add metadata for tasks
+    INSERT INTO public.task_metadata (task_id, title, value, created_by)
+    VALUES
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Security audit' AND created_by = v_user_id),
+        'estimated_hours',
+        '16',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Security audit' AND created_by = v_user_id),
+        'actual_hours',
+        '6',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Optimize database queries' AND created_by = v_user_id),
+        'estimated_hours',
+        '8',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Refactor authentication service' AND created_by = v_user_id),
+        'estimated_hours',
+        '10',
+        v_user_id
+    ),
+    (
+        (SELECT id FROM public.tasks WHERE title = 'Refactor authentication service' AND created_by = v_user_id),
+        'actual_hours',
+        '12',
+        v_user_id
     );
 
     -- Assign tasks to the user
