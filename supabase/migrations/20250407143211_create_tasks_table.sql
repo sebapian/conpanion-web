@@ -157,141 +157,214 @@ create trigger handle_entity_positions_updated_at
     for each row
     execute function public.handle_updated_at();
 
--- Basic RLS policies for tasks
-create policy "Users can view tasks they created or are assigned to"
-    on public.tasks for select
-    using (
-        auth.uid() = created_by or 
-        exists (
-            select 1 from public.entity_assignees
-            where entity_type = 'task'
-            and entity_id = tasks.id 
-            and user_id = auth.uid()
-        )
-    );
+-- RLS Policies that avoid infinite recursion
 
-create policy "Users can insert their own tasks"
-    on public.tasks for insert
-    with check (auth.uid() = created_by);
+-- Base policies for statuses
+create policy "Users can read statuses they have access to" 
+on public.statuses for select 
+using (
+  created_by = auth.uid()
+);
 
-create policy "Users can update tasks they created or are assigned to"
-    on public.tasks for update
-    using (
-        auth.uid() = created_by or 
-        exists (
-            select 1 from public.entity_assignees
-            where entity_type = 'task'
-            and entity_id = tasks.id 
-            and user_id = auth.uid()
-        )
-    );
+create policy "Users can insert their own statuses" 
+on public.statuses for insert 
+with check (created_by = auth.uid());
 
-create policy "Users can delete tasks they created"
-    on public.tasks for delete
-    using (auth.uid() = created_by);
+create policy "Users can update statuses they own" 
+on public.statuses for update 
+using (created_by = auth.uid());
 
--- RLS policies for entity assignees
-create policy "Users can view assignments they are involved with"
-    on public.entity_assignees for select
-    using (
-        auth.uid() = user_id or
-        case entity_type
-            when 'task' then exists (
-                select 1 from public.tasks
-                where id = entity_assignees.entity_id
-                and created_by = auth.uid()
-            )
-            -- Add more entity types here as needed
-            else false
-        end
-    );
+create policy "Users can delete statuses they own" 
+on public.statuses for delete 
+using (created_by = auth.uid());
 
-create policy "Entity owners can manage assignments"
-    on public.entity_assignees for all
-    using (
-        case entity_type
-            when 'task' then exists (
-                select 1 from public.tasks
-                where id = entity_assignees.entity_id
-                and created_by = auth.uid()
-            )
-            -- Add more entity types here as needed
-            else false
-        end
-    );
+-- Base policies for priorities
+create policy "Users can read priorities they have access to" 
+on public.priorities for select 
+using (
+  created_by = auth.uid()
+);
 
--- RLS policies for statuses, priorities, and labels
-create policy "Users can view project statuses"
-    on public.statuses for select
-    using (true);
+create policy "Users can insert their own priorities" 
+on public.priorities for insert 
+with check (created_by = auth.uid());
 
-create policy "Users can view project priorities"
-    on public.priorities for select
-    using (true);
+create policy "Users can update priorities they own" 
+on public.priorities for update 
+using (created_by = auth.uid());
 
-create policy "Users can view project labels"
-    on public.labels for select
-    using (true);
+create policy "Users can delete priorities they own" 
+on public.priorities for delete 
+using (created_by = auth.uid());
 
-create policy "Users can view entity labels"
-    on public.entity_labels for select
-    using (true);
+-- Base policies for labels
+create policy "Users can read labels they have access to" 
+on public.labels for select 
+using (
+  created_by = auth.uid()
+);
 
-create policy "Entity owners can manage labels"
-    on public.entity_labels for all
-    using (
-        case entity_type
-            when 'task' then exists (
-                select 1 from public.tasks
-                where id = entity_labels.entity_id
-                and (
-                    created_by = auth.uid() or
-                    exists (
-                        select 1 from public.entity_assignees
-                        where entity_type = 'task'
-                        and entity_id = tasks.id 
-                        and user_id = auth.uid()
-                    )
-                )
-            )
-            -- Add more entity types here as needed
-            else false
-        end
-    );
+create policy "Users can insert their own labels" 
+on public.labels for insert 
+with check (created_by = auth.uid());
 
--- RLS policies for entity positions
-create policy "Users can view shared positions and their own"
-    on public.entity_positions for select
-    using (
-        user_id is null or user_id = auth.uid()
-    );
+create policy "Users can update labels they own" 
+on public.labels for update 
+using (created_by = auth.uid());
 
-create policy "Users can manage their own positions"
-    on public.entity_positions for all
-    using (
-        -- For user-specific positions
-        (user_id = auth.uid()) or
-        -- For shared positions, check entity ownership
-        (user_id is null and
-            case entity_type
-                when 'task' then exists (
-                    select 1 from public.tasks
-                    where id = entity_positions.entity_id
-                    and (
-                        created_by = auth.uid() or
-                        exists (
-                            select 1 from public.entity_assignees
-                            where entity_type = 'task'
-                            and entity_id = tasks.id 
-                            and user_id = auth.uid()
-                        )
-                    )
-                )
-                -- Add more entity types here as needed
-                else false
-            end
-        )
-    );
+create policy "Users can delete labels they own" 
+on public.labels for delete 
+using (created_by = auth.uid());
 
--- Note: Additional policies for managing statuses and priorities will be added
--- when we implement the project-level permissions system 
+-- Policies for tasks
+create policy "Users can read tasks they have access to" 
+on public.tasks for select 
+using (
+  created_by = auth.uid()
+);
+
+create policy "Users can insert their own tasks" 
+on public.tasks for insert 
+with check (created_by = auth.uid());
+
+create policy "Users can update tasks they own" 
+on public.tasks for update 
+using (
+  created_by = auth.uid()
+);
+
+create policy "Users can delete tasks they own" 
+on public.tasks for delete 
+using (created_by = auth.uid());
+
+-- Policies for entity_assignees - FIXED to avoid self-references
+create policy "Users can view their assignments" 
+on public.entity_assignees for select 
+using (
+  user_id = auth.uid() OR
+  assigned_by = auth.uid()
+);
+
+create policy "Users can assign others to tasks they created" 
+on public.entity_assignees for insert 
+with check (
+  assigned_by = auth.uid() AND
+  (
+    -- Can assign to tasks they created
+    (entity_type = 'task' AND 
+     exists (
+       select 1 from public.tasks 
+       where id = entity_id AND created_by = auth.uid()
+     )
+    )
+  )
+);
+
+create policy "Users can remove assignees from their tasks" 
+on public.entity_assignees for delete 
+using (
+  assigned_by = auth.uid() OR
+  (
+    -- Can remove from tasks they created
+    (entity_type = 'task' AND 
+     exists (
+       select 1 from public.tasks 
+       where id = entity_id AND created_by = auth.uid()
+     )
+    )
+  )
+);
+
+-- Policies for entity_labels - FIXED to avoid self-references
+create policy "Users can view all entity labels" 
+on public.entity_labels for select 
+using (true);
+
+create policy "Users can add labels to their tasks" 
+on public.entity_labels for insert 
+with check (
+  created_by = auth.uid() AND
+  (
+    -- Can label tasks they created
+    (entity_type = 'task' AND 
+     exists (
+       select 1 from public.tasks 
+       where id = entity_id AND created_by = auth.uid()
+     )
+    )
+  )
+);
+
+create policy "Users can remove labels from their tasks" 
+on public.entity_labels for delete 
+using (
+  created_by = auth.uid() OR
+  (
+    -- Can remove labels from tasks they created
+    (entity_type = 'task' AND 
+     exists (
+       select 1 from public.tasks 
+       where id = entity_id AND created_by = auth.uid()
+     )
+    )
+  )
+);
+
+-- Policies for entity_positions
+create policy "Users can view positions" 
+on public.entity_positions for select 
+using (
+  user_id = auth.uid() OR user_id IS NULL
+);
+
+create policy "Users can create their own positions" 
+on public.entity_positions for insert 
+with check (
+  user_id = auth.uid() OR 
+  (user_id IS NULL AND
+   (
+     -- Only task creators can set global positions
+     (entity_type = 'task' AND 
+      exists (
+        select 1 from public.tasks 
+        where id = entity_id AND created_by = auth.uid()
+      )
+     )
+   )
+  )
+);
+
+create policy "Users can update their own positions" 
+on public.entity_positions for update 
+using (
+  user_id = auth.uid() OR 
+  (user_id IS NULL AND
+   (
+     -- Only task creators can update global positions
+     (entity_type = 'task' AND 
+      exists (
+        select 1 from public.tasks 
+        where id = entity_id AND created_by = auth.uid()
+      )
+     )
+   )
+  )
+);
+
+create policy "Users can delete their own positions" 
+on public.entity_positions for delete 
+using (
+  user_id = auth.uid() OR 
+  (user_id IS NULL AND
+   (
+     -- Only task creators can delete global positions
+     (entity_type = 'task' AND 
+      exists (
+        select 1 from public.tasks 
+        where id = entity_id AND created_by = auth.uid()
+      )
+     )
+   )
+  )
+);
+

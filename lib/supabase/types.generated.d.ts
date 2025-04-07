@@ -361,14 +361,88 @@ export type Database = {
         }
         Relationships: []
       }
+      task_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: number
+          task_id: number
+          user_avatar: string | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: number
+          task_id: number
+          user_avatar?: string | null
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: number
+          task_id?: number
+          user_avatar?: string | null
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_metadata: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: number
+          task_id: number
+          title: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: number
+          task_id: number
+          title: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: number
+          task_id?: number
+          title?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_metadata_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
-          actual_hours: number | null
           created_at: string
           created_by: string
           description: string | null
           due_date: string | null
-          estimated_hours: number | null
           id: number
           parent_task_id: number | null
           priority_id: number
@@ -378,12 +452,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          actual_hours?: number | null
           created_at?: string
           created_by: string
           description?: string | null
           due_date?: string | null
-          estimated_hours?: number | null
           id?: number
           parent_task_id?: number | null
           priority_id: number
@@ -393,12 +465,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          actual_hours?: number | null
           created_at?: string
           created_by?: string
           description?: string | null
           due_date?: string | null
-          estimated_hours?: number | null
           id?: number
           parent_task_id?: number | null
           priority_id?: number
@@ -436,7 +506,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_details: {
+        Args: {
+          user_ids: string[]
+        }
+        Returns: {
+          id: string
+          raw_user_meta_data: Json
+        }[]
+      }
     }
     Enums: {
       approval_status:

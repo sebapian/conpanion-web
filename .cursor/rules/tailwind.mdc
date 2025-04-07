@@ -18,3 +18,7 @@ You should always use modern definitions like flexbox or grid as much as possibl
 You should always use classes with mobile responsiveness first in mind then desktop.
 
 You should always suggest the minimal number of classes in order to meet the requirements rather than bloating the entire HTML.
+
+Use flexbox for mobile.
+
+Use flexbox if possible for desktop, otherwise use grid.
