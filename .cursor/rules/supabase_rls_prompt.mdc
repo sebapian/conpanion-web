@@ -1,7 +1,6 @@
 ---
 description: Guidelines for writing Postgres Row Level Security policies
-globs: '**/*.sql'
-alwaysApply: false
+globs: *.sql,**/*.sql,supabase/migrations/*.sql
 ---
 
 # Database: Create RLS policies

@@ -16,7 +16,7 @@ type Status = Database['public']['Tables']['statuses']['Row']
 type Priority = Database['public']['Tables']['priorities']['Row']
 type Label = Database['public']['Tables']['labels']['Row']
 
-interface TaskModalProps {
+interface TaskDrawerProps {
   isOpen: boolean
   onClose: () => void
   task: Task
@@ -29,7 +29,7 @@ interface TaskModalProps {
   refreshTasks: () => void
 }
 
-export function TaskModal({ 
+export function TaskDrawer({ 
   isOpen, 
   onClose, 
   task, 
@@ -40,7 +40,7 @@ export function TaskModal({
   allStatuses,
   allPriorities,
   refreshTasks
-}: TaskModalProps) {
+}: TaskDrawerProps) {
   const { user } = useAuth();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(task.title);
@@ -534,6 +534,7 @@ export function TaskModal({
             zIndex: 45 // High enough to be above tasks but below drawer (z-50)
           }}
           aria-hidden="true"
+          onClick={onClose}
         />
       )}
       
@@ -547,7 +548,7 @@ export function TaskModal({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-700 flex justify-between items-start sticky top-0 bg-gray-800 z-10">
+        <div className="p-4 border-b border-border flex justify-between items-start sticky top-0 bg-card z-10">
           <div className="flex-1 pr-3">
             <div className="flex items-center gap-2 mb-2">
               <StatusPill 
@@ -574,14 +575,14 @@ export function TaskModal({
                     value={titleValue}
                     onChange={(e) => setTitleValue(e.target.value)}
                     onKeyDown={handleTitleKeyDown}
-                    className="text-lg font-semibold bg-gray-700 text-white px-2 py-1 rounded-md w-full mr-2"
+                    className="text-lg font-semibold bg-muted text-foreground px-2 py-1 rounded-md w-full mr-2"
                     placeholder="Task title"
                     disabled={savingTitle}
                   />
                   <button
                     onClick={handleTitleSave}
                     disabled={savingTitle}
-                    className="text-green-500 hover:text-green-400 p-1 rounded-full hover:bg-gray-700 transition-colors"
+                    className="text-green-500 hover:text-green-400 p-1 rounded-full hover:bg-muted transition-colors"
                     aria-label="Save title"
                   >
                     <Check size={20} />
@@ -593,10 +594,10 @@ export function TaskModal({
               </div>
             ) : (
               <div className="flex items-center">
-                <h2 className="text-lg font-semibold text-white mr-2">{task.title}</h2>
+                <h2 className="text-lg font-semibold text-foreground mr-2">{task.title}</h2>
                 <button
                   onClick={() => setEditingTitle(true)}
-                  className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors opacity-50 hover:opacity-100"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors opacity-50 hover:opacity-100"
                   aria-label="Edit title"
                 >
                   <Pencil size={14} />
@@ -606,7 +607,7 @@ export function TaskModal({
           </div>
           <button 
             onClick={onClose} 
-            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors"
+            className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors"
             aria-label="Close"
           >
             <X size={20} />
@@ -618,11 +619,11 @@ export function TaskModal({
           {/* Description */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-400">Description</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
               {!editingDescription && (
                 <button
                   onClick={() => setEditingDescription(true)}
-                  className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors opacity-50 hover:opacity-100"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors opacity-50 hover:opacity-100"
                   aria-label="Edit description"
                 >
                   <Pencil size={14} />
@@ -638,14 +639,14 @@ export function TaskModal({
                     value={descriptionValue}
                     onChange={(e) => setDescriptionValue(e.target.value)}
                     onKeyDown={handleDescriptionKeyDown}
-                    className="text-white bg-gray-700 rounded-md p-3 w-full mr-2 min-h-[100px] resize-y"
+                    className="text-foreground bg-muted rounded-md p-3 w-full mr-2 min-h-[100px] resize-y border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Add a description..."
                     disabled={savingDescription}
                   />
                   <button
                     onClick={handleDescriptionSave}
                     disabled={savingDescription}
-                    className="text-green-500 hover:text-green-400 p-1 rounded-full hover:bg-gray-700 transition-colors mt-1"
+                    className="text-green-500 hover:text-green-400 p-1 rounded-full hover:bg-muted transition-colors mt-1"
                     aria-label="Save description"
                   >
                     <Check size={20} />
@@ -654,12 +655,12 @@ export function TaskModal({
                 {descriptionError && (
                   <p className="text-red-500 text-xs mt-1">{descriptionError}</p>
                 )}
-                <p className="text-gray-400 text-xs mt-1">
+                <p className="text-muted-foreground text-xs mt-1">
                   Use Ctrl+Enter to save, Esc to cancel
                 </p>
               </div>
             ) : (
-            <div className="text-white bg-gray-750 rounded-md p-3 whitespace-pre-line">
+            <div className="text-foreground bg-muted/50 rounded-md p-3 whitespace-pre-line border border-muted-foreground/20">
               {task.description || "No description provided"}
             </div>
             )}
@@ -669,16 +670,16 @@ export function TaskModal({
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row md:gap-6">
               <div className="mb-4 md:mb-0 flex-1">
-                <h3 className="text-sm font-medium text-gray-400 mb-2">Created</h3>
-                <div className="text-white">
-                  {format(new Date(task.created_at), 'PPP')}
-                </div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Created</h3>
+                <div className="text-foreground">
+                {format(new Date(task.created_at), 'PPP')}
               </div>
+            </div>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-gray-400 mb-2">Updated</h3>
-                <div className="text-white">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Updated</h3>
+                <div className="text-foreground">
                   {format(new Date(task.updated_at), 'PPP')} 
-                  <span className="text-gray-400 ml-2">
+                  <span className="text-muted-foreground ml-2">
                     ({formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })})
                   </span>
                 </div>
@@ -687,10 +688,10 @@ export function TaskModal({
             
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium text-gray-400">Due Date</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">Due Date</h3>
                 <button
                   onClick={() => setEditingDueDate(!editingDueDate)}
-                  className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors opacity-50 hover:opacity-100"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors opacity-50 hover:opacity-100"
                   aria-label={editingDueDate ? "Cancel editing" : "Edit due date"}
                 >
                   {editingDueDate ? <X size={14} /> : <Pencil size={14} />}
@@ -711,7 +712,7 @@ export function TaskModal({
                     <button
                       onClick={handleDueDateSave}
                       disabled={savingDueDate}
-                      className="text-green-500 hover:text-green-400 p-1 rounded-full hover:bg-gray-700 transition-colors"
+                      className="text-green-500 hover:text-green-400 p-1 rounded-full hover:bg-muted transition-colors"
                       aria-label="Save due date"
                     >
                       <Check size={20} />
@@ -722,50 +723,50 @@ export function TaskModal({
                   )}
                 </div>
               ) : (
-                <div className="text-white bg-gray-750 rounded-md p-3">
+                <div className="text-foreground bg-muted/50 rounded-md p-3 border border-muted-foreground/20">
                   {task.due_date ? (
                     <>
-                      {format(new Date(task.due_date), 'PPP')}
-                      <span className="text-gray-400 ml-2">
+                      {format(new Date(task.due_date), 'MMMM do, yyyy')}
+                      <span className="text-muted-foreground ml-2">
                         ({formatDistanceToNow(new Date(task.due_date), { addSuffix: true })})
                       </span>
                     </>
                   ) : (
-                    <span className="text-gray-400">No due date set</span>
+                    <span className="text-muted-foreground">No due date set</span>
                   )}
-                </div>
-              )}
+              </div>
+            )}
             </div>
           </div>
 
           {/* Assignees */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Assignees</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Assignees</h3>
             {assignees.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {assignees.map(assignee => (
                   <div 
                     key={assignee.id} 
-                    className="flex items-center gap-2 bg-gray-750 px-3 py-2 rounded-md"
+                    className="flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-md border border-muted-foreground/20"
                   >
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={assignee.avatar_url} />
-                      <AvatarFallback className="bg-gray-600 text-gray-200 text-xs">
+                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
                         {assignee.name.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-white text-sm">{assignee.name}</span>
+                    <span className="text-foreground text-sm">{assignee.name}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-gray-400">No assignees</div>
+              <div className="text-muted-foreground">No assignees</div>
             )}
           </div>
 
           {/* Labels */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Labels</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Labels</h3>
             <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
             {labels.length > 0 ? (
                 <>
@@ -790,7 +791,7 @@ export function TaskModal({
               ) : null}
               
               <button 
-                className="flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors mb-1 text-gray-400 hover:text-white"
+                className="flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-muted hover:bg-muted/80 transition-colors mb-1 text-muted-foreground hover:text-foreground border border-muted-foreground/20"
                 aria-label="Add label"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -803,13 +804,13 @@ export function TaskModal({
           </div>
 
           {/* Custom Metadata Section - replaces the previous "Time estimates" section */}
-          <div className="border-t border-gray-700 pt-4">
+          <div className="border-t border-border pt-4">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center">
-                <h3 className="text-sm font-medium text-gray-400">Additional Fields</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">Additional Fields</h3>
                 <button
                   onClick={() => setMetadataCollapsed(!metadataCollapsed)}
-                  className="ml-2 text-gray-400 hover:text-white"
+                  className="ml-2 text-muted-foreground hover:text-foreground"
                 >
                   {metadataCollapsed ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right">
@@ -851,11 +852,11 @@ export function TaskModal({
                   }}
                 />
                 
-                <div className="bg-gray-750 rounded-md p-3 mb-3 relative z-[56]">
+                <div className="bg-muted/50 rounded-md p-3 mb-3 relative z-[56]">
                   <div className="flex flex-col gap-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label htmlFor="metadata-title" className="block text-xs text-gray-400 mb-1">
+                        <label htmlFor="metadata-title" className="block text-xs text-muted-foreground mb-1">
                           Field Name
                         </label>
                         <input
@@ -863,12 +864,12 @@ export function TaskModal({
                           type="text"
                           value={newMetadataTitle}
                           onChange={(e) => setNewMetadataTitle(e.target.value)}
-                          className="bg-gray-700 text-white px-2 py-1 rounded w-full text-sm"
+                          className="bg-muted text-foreground px-2 py-1 rounded w-full text-sm border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., priority_score"
                         />
                       </div>
-                    <div>
-                          <label htmlFor="metadata-value" className="block text-xs text-gray-400 mb-1">
+                <div>
+                          <label htmlFor="metadata-value" className="block text-xs text-muted-foreground mb-1">
                             Value
                           </label>
                           <input
@@ -876,7 +877,7 @@ export function TaskModal({
                             type="text"
                             value={newMetadataValue}
                             onChange={(e) => setNewMetadataValue(e.target.value)}
-                            className="bg-gray-700 text-white px-2 py-1 rounded w-full text-sm"
+                            className="bg-muted text-foreground px-2 py-1 rounded w-full text-sm border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., 8.5"
                           />
                         </div>
@@ -884,7 +885,7 @@ export function TaskModal({
                     <div className="flex justify-end gap-2 mt-1">
                       <button
                         onClick={() => setShowAddMetadataForm(false)}
-                        className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-xs"
+                        className="px-2 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-md transition-colors text-xs"
                       >
                         Cancel
                       </button>
@@ -907,8 +908,8 @@ export function TaskModal({
             <div className="space-y-2">
               {loadingMetadata ? (
                 <div className="animate-pulse space-y-2">
-                  <div className="bg-gray-700 h-8 rounded"></div>
-                  <div className="bg-gray-700 h-8 rounded"></div>
+                  <div className="bg-muted h-8 rounded"></div>
+                  <div className="bg-muted h-8 rounded"></div>
                 </div>
               ) : (
                 <>
@@ -919,7 +920,7 @@ export function TaskModal({
                       .map((item: TaskMetadata) => (
                         <div 
                           key={item.id} 
-                          className="bg-gray-750 rounded-md p-2 flex items-center justify-between"
+                          className="bg-muted/50 rounded-md p-2 flex items-center justify-between"
                         >
                           {editingMetadataId === item.id ? (
                             <div className="flex-1 flex items-center gap-2">
@@ -927,7 +928,7 @@ export function TaskModal({
                                 type="text"
                                 value={newMetadataValue}
                                 onChange={(e) => setNewMetadataValue(e.target.value)}
-                                className="bg-gray-700 text-white px-2 py-1 rounded flex-1 text-sm"
+                                className="bg-muted text-foreground px-2 py-1 rounded flex-1 text-sm"
                                 autoFocus
                               />
                               <button
@@ -941,7 +942,7 @@ export function TaskModal({
                                   setEditingMetadataId(null);
                                   setNewMetadataValue('');
                                 }}
-                                className="text-gray-400 hover:text-white p-1"
+                                className="text-muted-foreground hover:text-foreground p-1"
                               >
                                 <X size={16} />
                               </button>
@@ -949,8 +950,8 @@ export function TaskModal({
                           ) : (
                             <>
                               <div className="flex-1">
-                                <div className="text-gray-400 text-xs">{item.title}</div>
-                                <div className="text-white text-sm font-medium truncate">
+                                <div className="text-muted-foreground text-xs">{item.title}</div>
+                                <div className="text-foreground text-sm font-medium truncate">
                                   {item.title.includes('hours') && item.value ? `${item.value} hours` : item.value}
                                 </div>
                               </div>
@@ -960,13 +961,13 @@ export function TaskModal({
                                     setEditingMetadataId(item.id);
                                     setNewMetadataValue(item.value);
                                   }}
-                                  className="text-gray-400 hover:text-white p-1"
+                                  className="text-muted-foreground hover:text-foreground p-1"
                                 >
                                   <Pencil size={14} />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteMetadata(item.title)}
-                                  className="text-gray-400 hover:text-red-400 p-1"
+                                  className="text-muted-foreground hover:text-red-400 p-1"
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -982,7 +983,7 @@ export function TaskModal({
                     <div className="text-center">
                       <button 
                         onClick={() => setMetadataCollapsed(false)}
-                        className="text-gray-400 hover:text-white text-sm"
+                        className="text-muted-foreground hover:text-foreground text-sm"
                       >
                         Show {metadata.length - 2} more field{metadata.length - 2 !== 1 ? 's' : ''}
                       </button>
@@ -991,7 +992,7 @@ export function TaskModal({
 
                   {/* Show message when no metadata and not showing form */}
                   {metadata.length === 0 && !showAddMetadataForm && (
-                    <div className="text-gray-400 text-center py-2 text-sm">
+                    <div className="text-muted-foreground text-center py-2 text-sm">
                       No fields. Click "Add Field" to add information.
                     </div>
                   )}
@@ -1001,37 +1002,37 @@ export function TaskModal({
           </div>
           
           {/* Comments Section */}
-          <div className="border-t border-gray-700 pt-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Comments</h3>
+          <div className="border-t border-border pt-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Comments</h3>
             
             {/* Comments List */}
             <div className="space-y-4 mb-4">
               {loadingComments ? (
                 <div className="flex justify-center py-4">
-                  <div className="animate-pulse text-gray-400">Loading comments...</div>
+                  <div className="animate-pulse text-muted-foreground">Loading comments...</div>
                 </div>
               ) : comments.length > 0 ? (
                 comments.map((comment: TaskComment) => (
-                  <div key={comment.id} className="bg-gray-750 rounded-md p-3">
+                  <div key={comment.id} className="bg-muted/50 rounded-md p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={comment.user_avatar} />
-                        <AvatarFallback className="bg-gray-600 text-gray-200 text-xs">
+                        <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
                           {comment.user_name.split(' ').map((n: string) => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-white text-sm font-medium">{comment.user_name}</span>
-                      <span className="text-gray-400 text-xs">
+                      <span className="text-foreground text-sm font-medium">{comment.user_name}</span>
+                      <span className="text-muted-foreground text-xs">
                         {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    <div className="text-white text-sm whitespace-pre-line">
+                    <div className="text-foreground text-sm whitespace-pre-line">
                       {comment.content}
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-gray-400 text-center py-4">No comments yet</div>
+                <div className="text-muted-foreground text-center py-4">No comments yet</div>
               )}
             </div>
             
@@ -1041,7 +1042,7 @@ export function TaskModal({
                 <div className="flex items-start">
                   <Avatar className="h-8 w-8 mr-2 mt-1">
                     <AvatarImage src={user.user_metadata?.avatar_url} />
-                    <AvatarFallback className="bg-gray-600 text-gray-200 text-xs">
+                    <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
                       {(user.user_metadata?.name || 'U').charAt(0)}
                     </AvatarFallback>
                   </Avatar>
@@ -1051,22 +1052,22 @@ export function TaskModal({
                       value={commentValue}
                       onChange={(e) => setCommentValue(e.target.value)}
                       onKeyDown={handleCommentKeyDown}
-                      className="text-white bg-gray-700 rounded-md p-3 w-full min-h-[80px] resize-y"
+                      className="text-foreground bg-muted rounded-md p-3 w-full min-h-[80px] resize-y border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Add a comment..."
                       disabled={addingComment}
                     />
                     {commentError && (
                       <p className="text-red-500 text-xs mt-1">{commentError}</p>
                     )}
-                    <p className="text-gray-400 text-xs mt-1">
+                    <p className="text-muted-foreground text-xs mt-1">
                       Use Ctrl+Enter to submit
                     </p>
                   </div>
                   <button
                     onClick={handleAddComment}
                     disabled={addingComment || !commentValue.trim()}
-                    className={`p-2 rounded-full hover:bg-gray-700 transition-colors ml-2 mt-1 ${
-                      commentValue.trim() ? 'text-blue-500 hover:text-blue-400' : 'text-gray-500 cursor-not-allowed'
+                    className={`p-2 rounded-full hover:bg-muted transition-colors ml-2 mt-1 ${
+                      commentValue.trim() ? 'text-blue-500 hover:text-blue-400' : 'text-muted-foreground cursor-not-allowed'
                     }`}
                     aria-label="Send comment"
                   >
@@ -1079,7 +1080,7 @@ export function TaskModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-700 bg-gray-800/50 mt-auto">
+        <div className="p-4 border-t border-border bg-card/80 mt-auto">
           <button 
             onClick={onClose}
             className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
@@ -1113,14 +1114,14 @@ export function TaskModal({
               }}
             >
               <div 
-                className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl w-full max-w-md p-4"
+                className="bg-card rounded-lg border border-border shadow-xl w-full max-w-md p-4"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-white font-medium">Create New Label</h3>
+                  <h3 className="text-foreground font-medium">Create New Label</h3>
                   <button 
                     onClick={() => setShowLabelPopup(false)}
-                    className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors"
+                    className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors"
                     aria-label="Close"
                   >
                     <X size={20} />
@@ -1130,7 +1131,7 @@ export function TaskModal({
                 <div className="space-y-4">
                   {/* Label Name Input */}
                   <div>
-                    <label htmlFor="label-name" className="block text-sm font-medium text-gray-400 mb-1">
+                    <label htmlFor="label-name" className="block text-sm font-medium text-muted-foreground mb-1">
                       Label Name
                     </label>
                     <input
@@ -1138,7 +1139,7 @@ export function TaskModal({
                       type="text"
                       value={labelName}
                       onChange={(e) => setLabelName(e.target.value)}
-                      className="text-white bg-gray-700 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="text-foreground bg-muted rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 border border-muted-foreground/20"
                       placeholder="Enter label name"
                       disabled={savingLabel}
                     />
@@ -1146,7 +1147,7 @@ export function TaskModal({
                   
                   {/* Color Picker */}
                   <div>
-                    <label htmlFor="label-color" className="block text-sm font-medium text-gray-400 mb-1">
+                    <label htmlFor="label-color" className="block text-sm font-medium text-muted-foreground mb-1">
                       Label Color
                     </label>
                     <div className="flex items-center">
@@ -1155,10 +1156,10 @@ export function TaskModal({
                         type="color"
                         value={labelColor}
                         onChange={(e) => setLabelColor(e.target.value)}
-                        className="bg-gray-700 rounded-md p-1 w-12 h-10 cursor-pointer"
+                        className="bg-muted rounded-md p-1 w-12 h-10 cursor-pointer border border-muted-foreground/20"
                         disabled={savingLabel}
                       />
-                      <span className="ml-3 text-white">
+                      <span className="ml-3 text-foreground">
                         {labelColor}
                       </span>
                     </div>
@@ -1166,7 +1167,7 @@ export function TaskModal({
                   
                   {/* Label Preview */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Preview
                     </label>
                     <div className="flex items-center">
@@ -1175,9 +1176,8 @@ export function TaskModal({
                         style={{ 
                           backgroundColor: `${labelColor}20`,
                           borderColor: labelColor,
-                          color: labelColor
                         }}
-                        className="text-xs px-2 py-1"
+                        className="text-xs px-2 py-1 border text-black dark:text-white"
                       >
                         {labelName || 'Label Preview'}
                       </Badge>
@@ -1191,7 +1191,7 @@ export function TaskModal({
                   <div className="flex justify-end gap-2 pt-2">
                     <button
                       onClick={() => setShowLabelPopup(false)}
-                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+                      className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-md transition-colors border border-muted-foreground/20"
                       disabled={savingLabel}
                     >
                       Cancel

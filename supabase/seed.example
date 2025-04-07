@@ -346,4 +346,263 @@ BEGIN
         v_user_id
     FROM public.tasks
     WHERE created_by = v_user_id;
+END $$;
+
+-- Create a sample project for sebapian95@gmail.com
+DO $$
+DECLARE
+    v_user_id uuid := 'f9d42068-621c-4e36-8c7c-1dd408c92183';
+    v_project_id integer := 2;
+BEGIN
+    -- Insert default statuses
+    INSERT INTO public.statuses (project_id, name, color, position, is_default, created_by) VALUES
+    (v_project_id, 'Backlog', '#CBD5E0', 0, true, v_user_id),
+    (v_project_id, 'In Development', '#4299E1', 1, false, v_user_id),
+    (v_project_id, 'Testing', '#9F7AEA', 2, false, v_user_id),
+    (v_project_id, 'Completed', '#48BB78', 3, false, v_user_id);
+
+    -- Insert default priorities
+    INSERT INTO public.priorities (project_id, name, color, position, is_default, created_by) VALUES
+    (v_project_id, 'Low', '#718096', 0, false, v_user_id),
+    (v_project_id, 'Medium', '#4299E1', 1, true, v_user_id),
+    (v_project_id, 'High', '#ED8936', 2, false, v_user_id),
+    (v_project_id, 'Critical', '#E53E3E', 3, false, v_user_id);
+
+    -- Insert sample labels
+    INSERT INTO public.labels (project_id, name, color, description, created_by) VALUES
+    (v_project_id, 'Frontend', '#FC8181', 'Frontend tasks', v_user_id),
+    (v_project_id, 'Backend', '#68D391', 'Backend tasks', v_user_id),
+    (v_project_id, 'UX/UI', '#63B3ED', 'Design related tasks', v_user_id),
+    (v_project_id, 'Testing', '#D6BCFA', 'QA and testing tasks', v_user_id);
+
+    -- Insert sample tasks
+    INSERT INTO public.tasks (
+        title,
+        description,
+        status_id,
+        priority_id,
+        project_id,
+        created_by,
+        estimated_hours,
+        actual_hours
+    ) VALUES
+    (
+        'Create login page',
+        'Design and implement a responsive login page with email and password authentication',
+        (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'In Development'),
+        (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'High'),
+        v_project_id,
+        v_user_id,
+        6,
+        4
+    ),
+    (
+        'Set up authentication API',
+        'Implement JWT authentication backend API with refresh tokens',
+        (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'Completed'),
+        (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Critical'),
+        v_project_id,
+        v_user_id,
+        8,
+        10
+    ),
+    (
+        'Implement user dashboard',
+        'Create a dashboard with user statistics and recent activity',
+        (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'Backlog'),
+        (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Medium'),
+        v_project_id,
+        v_user_id,
+        12,
+        NULL
+    );
+
+    -- Assign tasks to the user
+    INSERT INTO public.entity_assignees (entity_type, entity_id, user_id, assigned_by) 
+    SELECT 
+        'task',
+        id,
+        v_user_id,
+        v_user_id
+    FROM public.tasks
+    WHERE created_by = v_user_id;
+
+    -- Add labels to tasks
+    INSERT INTO public.entity_labels (entity_type, entity_id, label_id, created_by)
+    SELECT 
+        'task',
+        t.id,
+        l.id,
+        v_user_id
+    FROM public.tasks t
+    CROSS JOIN public.labels l
+    WHERE t.created_by = v_user_id
+    AND l.name IN ('Frontend', 'UX/UI')
+    AND t.title = 'Create login page';
+
+    -- Add positions for tasks in different views
+    INSERT INTO public.entity_positions (
+        entity_type,
+        entity_id,
+        context,
+        position,
+        user_id
+    )
+    SELECT
+        'task',
+        id,
+        'list',
+        (ROW_NUMBER() OVER (ORDER BY created_at)) * 100,
+        v_user_id
+    FROM public.tasks
+    WHERE created_by = v_user_id;
+
+    -- Add positions for kanban view
+    INSERT INTO public.entity_positions (
+        entity_type,
+        entity_id,
+        context,
+        position,
+        user_id
+    )
+    SELECT
+        'task',
+        id,
+        'kanban',
+        (ROW_NUMBER() OVER (PARTITION BY status_id ORDER BY created_at)) * 100,
+        v_user_id
+    FROM public.tasks
+    WHERE created_by = v_user_id;
+END $$;
+
+-- Create a sample project for user@example.com
+DO $$
+DECLARE
+    v_user_id uuid := 'f9d42068-621c-4e36-8c7c-1dd408c92182';
+    v_project_id integer := 3;
+BEGIN
+    -- Insert default statuses
+    INSERT INTO public.statuses (project_id, name, color, position, is_default, created_by) VALUES
+    (v_project_id, 'New', '#E2E8F0', 0, true, v_user_id),
+    (v_project_id, 'Working', '#3182CE', 1, false, v_user_id),
+    (v_project_id, 'Blocked', '#F56565', 2, false, v_user_id),
+    (v_project_id, 'Completed', '#48BB78', 3, false, v_user_id);
+
+    -- Insert default priorities
+    INSERT INTO public.priorities (project_id, name, color, position, is_default, created_by) VALUES
+    (v_project_id, 'Low', '#718096', 0, false, v_user_id),
+    (v_project_id, 'Normal', '#3182CE', 1, true, v_user_id),
+    (v_project_id, 'Important', '#DD6B20', 2, false, v_user_id),
+    (v_project_id, 'Blocker', '#E53E3E', 3, false, v_user_id);
+
+    -- Insert sample labels
+    INSERT INTO public.labels (project_id, name, color, description, created_by) VALUES
+    (v_project_id, 'Performance', '#FC8181', 'Performance optimization tasks', v_user_id),
+    (v_project_id, 'Security', '#68D391', 'Security related tasks', v_user_id),
+    (v_project_id, 'Refactor', '#63B3ED', 'Code refactoring tasks', v_user_id),
+    (v_project_id, 'Research', '#B794F4', 'Research and investigation tasks', v_user_id);
+
+    -- Insert sample tasks
+    INSERT INTO public.tasks (
+        title,
+        description,
+        status_id,
+        priority_id,
+        project_id,
+        created_by,
+        estimated_hours,
+        actual_hours,
+        due_date
+    ) VALUES
+    (
+        'Security audit',
+        'Perform a comprehensive security audit of the application',
+        (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'Working'),
+        (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Blocker'),
+        v_project_id,
+        v_user_id,
+        16,
+        6,
+        (CURRENT_DATE + INTERVAL '2 weeks')::date
+    ),
+    (
+        'Optimize database queries',
+        'Identify and optimize slow database queries to improve application performance',
+        (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'New'),
+        (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Important'),
+        v_project_id,
+        v_user_id,
+        8,
+        NULL,
+        (CURRENT_DATE + INTERVAL '1 month')::date
+    ),
+    (
+        'Refactor authentication service',
+        'Improve code organization and test coverage for the authentication service',
+        (SELECT id FROM public.statuses WHERE project_id = v_project_id AND name = 'Completed'),
+        (SELECT id FROM public.priorities WHERE project_id = v_project_id AND name = 'Normal'),
+        v_project_id,
+        v_user_id,
+        10,
+        12,
+        NULL
+    );
+
+    -- Assign tasks to the user
+    INSERT INTO public.entity_assignees (entity_type, entity_id, user_id, assigned_by) 
+    SELECT 
+        'task',
+        id,
+        v_user_id,
+        v_user_id
+    FROM public.tasks
+    WHERE created_by = v_user_id;
+
+    -- Add labels to tasks
+    INSERT INTO public.entity_labels (entity_type, entity_id, label_id, created_by)
+    SELECT 
+        'task',
+        t.id,
+        l.id,
+        v_user_id
+    FROM public.tasks t
+    CROSS JOIN public.labels l
+    WHERE t.created_by = v_user_id
+    AND ((l.name = 'Security' AND t.title = 'Security audit') OR
+         (l.name = 'Performance' AND t.title = 'Optimize database queries') OR
+         (l.name = 'Refactor' AND t.title = 'Refactor authentication service'));
+
+    -- Add positions for tasks in different views
+    INSERT INTO public.entity_positions (
+        entity_type,
+        entity_id,
+        context,
+        position,
+        user_id
+    )
+    SELECT
+        'task',
+        id,
+        'list',
+        (ROW_NUMBER() OVER (ORDER BY created_at)) * 100,
+        v_user_id
+    FROM public.tasks
+    WHERE created_by = v_user_id;
+
+    -- Add positions for kanban view
+    INSERT INTO public.entity_positions (
+        entity_type,
+        entity_id,
+        context,
+        position,
+        user_id
+    )
+    SELECT
+        'task',
+        id,
+        'kanban',
+        (ROW_NUMBER() OVER (PARTITION BY status_id ORDER BY created_at)) * 100,
+        v_user_id
+    FROM public.tasks
+    WHERE created_by = v_user_id;
 END $$; 

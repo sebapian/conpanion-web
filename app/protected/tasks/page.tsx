@@ -145,7 +145,7 @@ export default function TasksPage() {
     
     if (!active || !over) return;
     
-    // We're just interested in the droppable status column containers
+    // We're interested in the droppable status column containers
     const isOverStatusContainer = over.id.toString().includes('status-');
     
     if (isOverStatusContainer) {
@@ -162,8 +162,9 @@ export default function TasksPage() {
         return;
       }
       
-      // Otherwise, we're dragging over a different status column,
-      // so we'll show a placeholder for where the task will be dropped
+      // At this point, we're hovering over a different status column
+      // The placeholder will be shown automatically thanks to the isOver prop
+      // from useDroppable in the StatusColumn component
     }
   };
 
@@ -185,9 +186,10 @@ export default function TasksPage() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <TaskColumnSkeleton />
-          <TaskColumnSkeleton />
-          <TaskColumnSkeleton />
+            <TaskColumnSkeleton />
+            <TaskColumnSkeleton />
+            <TaskColumnSkeleton />
+            <TaskColumnSkeleton />
         </div>
       </div>
     );
@@ -211,9 +213,9 @@ export default function TasksPage() {
         // When drawer is open, render tasks without DndContext
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {statuses.map((status) => (
-            <div 
+            <div
               key={status.id}
-              className="bg-white dark:bg-gray-900 border border-gray-800 rounded-lg p-4"
+              className="bg-card border border-border rounded-lg p-4"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium">{status.name}</h3>
@@ -244,21 +246,21 @@ export default function TasksPage() {
                       .filter((label): label is NonNullable<typeof label> => label !== null) || [];
                       
                     return (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        status={status}
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      status={status}
                         priority={taskPriority}
                         labels={taskLabels}
-                        assignees={task.entity_assignees?.map((ea) => ({
-                          id: ea.user_id,
-                          name: ea.users.raw_user_meta_data.name,
-                          avatar_url: ea.users.raw_user_meta_data.avatar_url,
-                        })) ?? []}
+                      assignees={task.entity_assignees?.map((ea) => ({
+                        id: ea.user_id,
+                        name: ea.users.raw_user_meta_data.name,
+                        avatar_url: ea.users.raw_user_meta_data.avatar_url,
+                      })) ?? []}
                         allStatuses={statuses}
                         allPriorities={priorities}
                         refreshTasks={refreshTasks}
-                      />
+                    />
                     );
                   })}
               </div>
@@ -292,34 +294,36 @@ export default function TasksPage() {
           </div>
           
           {/* Drag overlay to show what's being dragged */}
-          <DragOverlay adjustScale zIndex={100}>
+          <DragOverlay adjustScale={false} zIndex={100}>
             {activeTask && (
-              <TaskCard
-                task={activeTask}
-                status={statuses.find(s => s.id === activeTask.status_id) || statuses[0]}
-                priority={activeTask.priorities || {
-                  id: 0,
-                  name: 'No Priority',
-                  color: '#E2E8F0',
-                  position: 0,
-                  is_default: false,
-                  project_id: 0,
-                  created_at: '',
-                  created_by: ''
-                }}
-                labels={activeTask.entity_labels
-                  ?.map((el) => el.labels)
-                  .filter((label): label is NonNullable<typeof label> => label !== null) || []}
-                assignees={activeTask.entity_assignees?.map((ea) => ({
-                  id: ea.user_id,
-                  name: ea.users.raw_user_meta_data.name,
-                  avatar_url: ea.users.raw_user_meta_data.avatar_url,
-                })) ?? []}
-                allStatuses={statuses}
-                allPriorities={priorities}
-                refreshTasks={refreshTasks}
-                className="opacity-80 shadow-xl cursor-grabbing transform scale-105"
-              />
+              <div style={{ height: `${dragCardHeight}px` }}>
+                <TaskCard
+                  task={activeTask}
+                  status={statuses.find(s => s.id === activeTask.status_id) || statuses[0]}
+                  priority={activeTask.priorities || {
+                    id: 0,
+                    name: 'No Priority',
+                    color: '#E2E8F0',
+                    position: 0,
+                    is_default: false,
+                    project_id: 0,
+                    created_at: '',
+                    created_by: ''
+                  }}
+                  labels={activeTask.entity_labels
+                    ?.map((el) => el.labels)
+                    .filter((label): label is NonNullable<typeof label> => label !== null) || []}
+                  assignees={activeTask.entity_assignees?.map((ea) => ({
+                    id: ea.user_id,
+                    name: ea.users.raw_user_meta_data.name,
+                    avatar_url: ea.users.raw_user_meta_data.avatar_url,
+                  })) ?? []}
+                  allStatuses={statuses}
+                  allPriorities={priorities}
+                  refreshTasks={refreshTasks}
+                  className="opacity-80 shadow-xl cursor-grabbing"
+                />
+              </div>
             )}
           </DragOverlay>
         </DndContext>
@@ -345,6 +349,7 @@ export default function TasksPage() {
             zIndex: 45 // High enough to be above tasks but below drawer (z-50)
           }}
           aria-hidden="true"
+          onClick={() => setIsAddTaskDrawerOpen(false)}
         />
       )}
     </div>
@@ -436,7 +441,7 @@ function StatusColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "relative bg-white dark:bg-gray-900 border border-gray-800 rounded-lg p-4 transition-all duration-200",
+        "relative bg-card border border-border rounded-lg p-4 transition-all duration-200",
         isOver && isDragging && "ring-1 ring-blue-500 ring-inset"
       )}
       style={isDragging ? { 
@@ -508,10 +513,13 @@ function StatusColumn({
           {/* Placeholder for the dragged task */}
           {isOver && isDragging && (
             <div 
-              className="absolute bottom-4 left-4 right-4 transition-opacity duration-300 animate-in fade-in"
-              style={{ height: `${dragCardHeight}px` }}
+              className="absolute bottom-4 left-4 right-4 transition-all duration-150"
+              style={{ 
+                opacity: isOver ? 1 : 0, 
+                transform: isOver ? 'translateY(0)' : 'translateY(10px)'
+              }}
             >
-              <DragPlaceholder />
+              <DragPlaceholder height={dragCardHeight} />
             </div>
           )}
         </div>

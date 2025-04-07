@@ -342,17 +342,17 @@ export function AddTaskDrawer({
       
       {/* Drawer */}
       <div 
-        className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-gray-800 border-l border-gray-700 shadow-xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
+        className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-card border-l border-border shadow-xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
         onClick={e => e.stopPropagation()}
         aria-modal="true"
         role="dialog"
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-700 flex justify-between items-start sticky top-0 bg-gray-800 z-10">
-          <h2 className="text-xl font-semibold text-white">Create New Task</h2>
+        <div className="p-4 border-b border-border flex justify-between items-start sticky top-0 bg-card z-10">
+          <h2 className="text-xl font-semibold text-foreground">Create New Task</h2>
           <button 
             onClick={onClose} 
-            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors"
+            className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors"
             aria-label="Close"
           >
             <X size={20} />
@@ -363,7 +363,7 @@ export function AddTaskDrawer({
         <div className="p-4 space-y-6 flex-1 overflow-y-auto">
           {/* Title */}
           <div>
-            <label htmlFor="task-title" className="block text-sm font-medium text-gray-400 mb-2">
+            <label htmlFor="task-title" className="block text-sm font-medium text-muted-foreground mb-2">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -371,7 +371,7 @@ export function AddTaskDrawer({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-gray-700 text-white px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-muted text-foreground px-3 py-2 rounded-md w-full border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter task title"
               disabled={saving}
             />
@@ -379,14 +379,14 @@ export function AddTaskDrawer({
           
           {/* Description */}
           <div>
-            <label htmlFor="task-description" className="block text-sm font-medium text-gray-400 mb-2">
+            <label htmlFor="task-description" className="block text-sm font-medium text-muted-foreground mb-2">
               Description
             </label>
             <textarea
               id="task-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-gray-700 text-white px-3 py-2 rounded-md w-full min-h-[100px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-muted text-foreground px-3 py-2 rounded-md w-full min-h-[100px] resize-y border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter task description"
               disabled={saving}
             />
@@ -395,69 +395,79 @@ export function AddTaskDrawer({
           {/* Status and Priority */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Status
               </label>
-              <div className="bg-gray-700 rounded-md p-3">
+              <div className="bg-muted rounded-md p-3 border border-muted-foreground/20">
                 {statusId ? (
                   <div className="flex flex-wrap gap-2">
-                    {allStatuses.map(status => (
-                      <div
-                        key={status.id}
-                        onClick={() => setStatusId(status.id)}
-                        className={`px-3 py-1 rounded-full cursor-pointer flex items-center gap-1 transition-colors ${
-                          statusId === status.id 
-                            ? 'ring-2 ring-offset-1 ring-offset-gray-800' 
-                            : 'opacity-70 hover:opacity-100'
-                        }`}
-                        style={{ 
-                          backgroundColor: status.color || '#E2E8F0',
-                          color: 'black'
-                        }}
-                      >
-                        {status.name}
-                        {status.is_default && (
-                          <span className="text-xs ml-1">(Default)</span>
-                        )}
-                      </div>
-                    ))}
+                    {allStatuses.map(status => {
+                      const bgColor = status.color || '#E2E8F0';
+                      const textColor = 'black'; // Always use dark text for better visibility
+                      return (
+                        <div
+                          key={status.id}
+                          onClick={() => setStatusId(status.id)}
+                          className={`px-3 py-1 rounded-full cursor-pointer flex items-center gap-1 transition-colors border ${
+                            statusId === status.id 
+                              ? 'ring-2 ring-offset-1 ring-ring' 
+                              : 'opacity-70 hover:opacity-100'
+                          }`}
+                          style={{ 
+                            backgroundColor: bgColor,
+                            borderColor: bgColor,
+                            color: textColor
+                          }}
+                        >
+                          {status.name}
+                          {status.is_default && (
+                            <span className="text-xs ml-1">(Default)</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="text-gray-400">No statuses available</div>
+                  <div className="text-muted-foreground">No statuses available</div>
                 )}
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Priority
               </label>
-              <div className="bg-gray-700 rounded-md p-3">
+              <div className="bg-muted rounded-md p-3 border border-muted-foreground/20">
                 {priorityId ? (
                   <div className="flex flex-wrap gap-2">
-                    {allPriorities.map(priority => (
-                      <div
-                        key={priority.id}
-                        onClick={() => setPriorityId(priority.id)}
-                        className={`px-3 py-1 rounded-full cursor-pointer flex items-center gap-1 transition-colors ${
-                          priorityId === priority.id 
-                            ? 'ring-2 ring-offset-1 ring-offset-gray-800' 
-                            : 'opacity-70 hover:opacity-100'
-                        }`}
-                        style={{ 
-                          backgroundColor: priority.color || '#E2E8F0',
-                          color: 'black'
-                        }}
-                      >
-                        {priority.name}
-                        {priority.is_default && (
-                          <span className="text-xs ml-1">(Default)</span>
-                        )}
-                      </div>
-                    ))}
+                    {allPriorities.map(priority => {
+                      const bgColor = priority.color || '#E2E8F0';
+                      const textColor = 'black'; // Always use dark text for better visibility
+                      return (
+                        <div
+                          key={priority.id}
+                          onClick={() => setPriorityId(priority.id)}
+                          className={`px-3 py-1 rounded-full cursor-pointer flex items-center gap-1 transition-colors border ${
+                            priorityId === priority.id 
+                              ? 'ring-2 ring-offset-1 ring-ring' 
+                              : 'opacity-70 hover:opacity-100'
+                          }`}
+                          style={{ 
+                            backgroundColor: bgColor,
+                            borderColor: bgColor,
+                            color: textColor
+                          }}
+                        >
+                          {priority.name}
+                          {priority.is_default && (
+                            <span className="text-xs ml-1">(Default)</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="text-gray-400">No priorities available</div>
+                  <div className="text-muted-foreground">No priorities available</div>
                 )}
               </div>
             </div>
@@ -465,33 +475,38 @@ export function AddTaskDrawer({
           
           {/* Due Date */}
           <div>
-            <label htmlFor="due-date" className="block text-sm font-medium text-gray-400 mb-2">
+            <label htmlFor="due-date" className="block text-sm font-medium text-muted-foreground mb-2">
               Due Date
             </label>
-            <DatePicker
-              date={dueDate}
-              setDate={setDueDate}
-              disabled={saving}
-              placeholder="Select due date"
-            />
+            <div className="border border-muted-foreground/20 rounded-md">
+              <DatePicker
+                date={dueDate}
+                setDate={setDueDate}
+                disabled={saving}
+                placeholder="Select due date"
+                className="text-foreground"
+              />
+            </div>
           </div>
           
           {/* Labels */}
           <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Labels
+            </label>
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-400">
-                Labels
-              </label>
+              <div className="text-muted-foreground text-xs">Add labels to categorize this task</div>
               <button 
                 onClick={() => setShowLabelPopup(true)}
                 className="text-blue-500 hover:text-blue-400 text-sm flex items-center"
                 disabled={saving}
               >
                 <Plus size={14} className="mr-1" />
-                <span>Add Label</span>
+                <span>Create Label</span>
               </button>
             </div>
             
+            {/* Selected labels */}
             {selectedLabels.length > 0 ? (
               <div className="flex flex-wrap gap-2 mb-3">
                 {selectedLabels.map(label => {
@@ -503,14 +518,14 @@ export function AddTaskDrawer({
                       style={{ 
                         backgroundColor: `${labelColor}20`,
                         borderColor: labelColor,
-                        color: labelColor
+                        color: 'black'
                       }}
-                      className="text-xs px-2 py-1 flex items-center gap-1"
+                      className="text-xs px-2 py-1 cursor-pointer border flex items-center gap-1"
                     >
                       {label.name}
-                      <button
+                      <button 
                         onClick={() => handleRemoveLabel(label.id)}
-                        className="text-gray-400 hover:text-white ml-1"
+                        className="text-muted-foreground hover:text-foreground"
                       >
                         <X size={12} />
                       </button>
@@ -519,13 +534,13 @@ export function AddTaskDrawer({
                 })}
               </div>
             ) : (
-              <div className="text-gray-400 mb-3">No labels selected</div>
+              <div className="text-muted-foreground mb-3">No labels selected</div>
             )}
             
             {/* Available labels for quick selection */}
             {availableLabels.length > 0 && (
-              <div className="bg-gray-750 rounded-md p-3">
-                <div className="text-xs text-gray-400 mb-2">Available Labels</div>
+              <div className="bg-muted/50 rounded-md p-3 border border-muted-foreground/20">
+                <div className="text-xs text-muted-foreground mb-2">Available Labels</div>
                 <div className="flex flex-wrap gap-2">
                   {availableLabels
                     .filter(label => !selectedLabels.some(l => l.id === label.id))
@@ -538,9 +553,8 @@ export function AddTaskDrawer({
                           style={{ 
                             backgroundColor: `${labelColor}20`,
                             borderColor: labelColor,
-                            color: labelColor
                           }}
-                          className="text-xs px-2 py-1 cursor-pointer hover:ring-1 hover:ring-gray-400"
+                          className="text-xs px-2 py-1 cursor-pointer hover:ring-1 hover:ring-muted-foreground border text-black dark:text-white"
                           onClick={() => handleSelectLabel(label)}
                         >
                           {label.name}
@@ -553,9 +567,9 @@ export function AddTaskDrawer({
           </div>
           
           {/* Additional Fields */}
-          <div className="border-t border-gray-700 pt-4">
+          <div className="border-t border-border pt-4">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-medium text-gray-400">Additional Fields</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Additional Fields</h3>
               {!showAddMetadataForm && (
                 <button 
                   onClick={() => setShowAddMetadataForm(true)}
@@ -570,25 +584,25 @@ export function AddTaskDrawer({
             
             {/* Time Tracking Fields */}
             <div className="grid grid-cols-1 gap-3 mb-4">
-              <div className="bg-gray-750 rounded-md p-3">
-                <div className="text-gray-400 text-xs mb-1">Estimated Hours</div>
+              <div className="bg-muted/50 rounded-md p-3 border border-muted-foreground/20">
+                <div className="text-muted-foreground text-xs mb-1">Estimated Hours</div>
                 <input
                   type="text"
                   value={estimatedHours}
                   onChange={(e) => handleHoursChange(e.target.value, setEstimatedHours)}
-                  className="bg-gray-700 text-white px-3 py-1 rounded w-full text-sm"
+                  className="bg-muted text-foreground px-3 py-1 rounded w-full text-sm border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 4.5"
                   disabled={saving}
                 />
               </div>
               
-              <div className="bg-gray-750 rounded-md p-3">
-                <div className="text-gray-400 text-xs mb-1">Manpower</div>
+              <div className="bg-muted/50 rounded-md p-3 border border-muted-foreground/20">
+                <div className="text-muted-foreground text-xs mb-1">Manpower</div>
                 <input
                   type="text"
                   value={manpower}
                   onChange={(e) => handleHoursChange(e.target.value, setManpower)}
-                  className="bg-gray-700 text-white px-3 py-1 rounded w-full text-sm"
+                  className="bg-muted text-foreground px-3 py-1 rounded w-full text-sm border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 3.25"
                   disabled={saving}
                 />
@@ -597,56 +611,54 @@ export function AddTaskDrawer({
             
             {/* Add Metadata Form */}
             {showAddMetadataForm && (
-              <div className="bg-gray-750 rounded-md p-3 mb-3">
-                <div className="flex flex-col gap-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label htmlFor="metadata-title" className="block text-xs text-gray-400 mb-1">
-                        Field Name
-                      </label>
-                      <input
-                        id="metadata-title"
-                        type="text"
-                        value={newMetadataTitle}
-                        onChange={(e) => setNewMetadataTitle(e.target.value)}
-                        className="bg-gray-700 text-white px-2 py-1 rounded w-full text-sm"
-                        placeholder="e.g., priority_score"
-                        disabled={saving}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="metadata-value" className="block text-xs text-gray-400 mb-1">
-                        Value
-                      </label>
-                      <input
-                        id="metadata-value"
-                        type="text"
-                        value={newMetadataValue}
-                        onChange={(e) => setNewMetadataValue(e.target.value)}
-                        className="bg-gray-700 text-white px-2 py-1 rounded w-full text-sm"
-                        placeholder="e.g., 8.5"
-                        disabled={saving}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-1">
-                    <button
-                      onClick={() => setShowAddMetadataForm(false)}
-                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-xs"
+              <div className="bg-muted/50 rounded-md p-3 mb-3 border border-muted-foreground/20">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="metadata-title" className="block text-xs text-muted-foreground mb-1">
+                      Field Name
+                    </label>
+                    <input
+                      id="metadata-title"
+                      type="text"
+                      value={newMetadataTitle}
+                      onChange={(e) => setNewMetadataTitle(e.target.value)}
+                      className="bg-muted text-foreground px-2 py-1 rounded w-full text-sm border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., priority_score"
                       disabled={saving}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAddMetadata}
-                      disabled={!newMetadataTitle.trim() || !newMetadataValue.trim() || saving}
-                      className={`px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors text-xs ${
-                        !newMetadataTitle.trim() || !newMetadataValue.trim() ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      Add
-                    </button>
+                    />
                   </div>
+                  <div>
+                    <label htmlFor="metadata-value" className="block text-xs text-muted-foreground mb-1">
+                      Value
+                    </label>
+                    <input
+                      id="metadata-value"
+                      type="text"
+                      value={newMetadataValue}
+                      onChange={(e) => setNewMetadataValue(e.target.value)}
+                      className="bg-muted text-foreground px-2 py-1 rounded w-full text-sm border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., 8.5"
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-1">
+                  <button
+                    onClick={() => setShowAddMetadataForm(false)}
+                    className="px-2 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-md transition-colors text-xs border border-muted-foreground/20"
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddMetadata}
+                    disabled={!newMetadataTitle.trim() || !newMetadataValue.trim() || saving}
+                    className={`px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors text-xs ${
+                      !newMetadataTitle.trim() || !newMetadataValue.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    Add
+                  </button>
                 </div>
               </div>
             )}
@@ -657,17 +669,17 @@ export function AddTaskDrawer({
                 {customMetadata.map((item, index) => (
                   <div 
                     key={index} 
-                    className="bg-gray-750 rounded-md p-2 flex items-center justify-between"
+                    className="bg-muted/50 rounded-md p-2 flex items-center justify-between border border-muted-foreground/20"
                   >
                     <div className="flex-1">
-                      <div className="text-gray-400 text-xs">{item.title}</div>
-                      <div className="text-white text-sm font-medium truncate">
+                      <div className="text-muted-foreground text-xs">{item.title}</div>
+                      <div className="text-foreground text-sm font-medium truncate">
                         {item.value}
                       </div>
                     </div>
                     <button
                       onClick={() => handleRemoveMetadata(index)}
-                      className="text-gray-400 hover:text-red-400 p-1"
+                      className="text-muted-foreground hover:text-red-400 p-1"
                       disabled={saving}
                     >
                       <X size={16} />
@@ -679,7 +691,7 @@ export function AddTaskDrawer({
             
             {/* No fields message */}
             {customMetadata.length === 0 && !estimatedHours && !manpower && !showAddMetadataForm && (
-              <div className="text-gray-400 text-center py-2 text-sm">
+              <div className="text-muted-foreground text-center py-2 text-sm">
                 Add fields to store custom information about this task.
               </div>
             )}
@@ -694,7 +706,7 @@ export function AddTaskDrawer({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-700 bg-gray-800/50 mt-auto">
+        <div className="p-4 border-t border-border bg-card/80 mt-auto">
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -724,14 +736,14 @@ export function AddTaskDrawer({
             }}
           >
             <div 
-              className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl w-full max-w-md p-4"
+              className="bg-card rounded-lg border border-border shadow-xl w-full max-w-md p-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-white font-medium">Create New Label</h3>
+                <h3 className="text-foreground font-medium">Create New Label</h3>
                 <button 
                   onClick={() => setShowLabelPopup(false)}
-                  className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors"
                   aria-label="Close"
                 >
                   <X size={20} />
@@ -741,7 +753,7 @@ export function AddTaskDrawer({
               <div className="space-y-4">
                 {/* Label Name Input */}
                 <div>
-                  <label htmlFor="label-name" className="block text-sm font-medium text-gray-400 mb-1">
+                  <label htmlFor="label-name" className="block text-sm font-medium text-muted-foreground mb-1">
                     Label Name
                   </label>
                   <input
@@ -749,7 +761,7 @@ export function AddTaskDrawer({
                     type="text"
                     value={labelName}
                     onChange={(e) => setLabelName(e.target.value)}
-                    className="text-white bg-gray-700 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-foreground bg-muted rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 border border-muted-foreground/20"
                     placeholder="Enter label name"
                     disabled={savingLabel}
                   />
@@ -757,7 +769,7 @@ export function AddTaskDrawer({
                 
                 {/* Color Picker */}
                 <div>
-                  <label htmlFor="label-color" className="block text-sm font-medium text-gray-400 mb-1">
+                  <label htmlFor="label-color" className="block text-sm font-medium text-muted-foreground mb-1">
                     Label Color
                   </label>
                   <div className="flex items-center">
@@ -766,10 +778,10 @@ export function AddTaskDrawer({
                       type="color"
                       value={labelColor}
                       onChange={(e) => setLabelColor(e.target.value)}
-                      className="bg-gray-700 rounded-md p-1 w-12 h-10 cursor-pointer"
+                      className="bg-muted rounded-md p-1 w-12 h-10 cursor-pointer border border-muted-foreground/20"
                       disabled={savingLabel}
                     />
-                    <span className="ml-3 text-white">
+                    <span className="ml-3 text-foreground">
                       {labelColor}
                     </span>
                   </div>
@@ -777,7 +789,7 @@ export function AddTaskDrawer({
                 
                 {/* Label Preview */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Preview
                   </label>
                   <div className="flex items-center">
@@ -786,9 +798,8 @@ export function AddTaskDrawer({
                       style={{ 
                         backgroundColor: `${labelColor}20`,
                         borderColor: labelColor,
-                        color: labelColor
                       }}
-                      className="text-xs px-2 py-1"
+                      className="text-xs px-2 py-1 border text-black dark:text-white"
                     >
                       {labelName || 'Label Preview'}
                     </Badge>
@@ -802,7 +813,7 @@ export function AddTaskDrawer({
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     onClick={() => setShowLabelPopup(false)}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+                    className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-md transition-colors border border-muted-foreground/20"
                     disabled={savingLabel}
                   >
                     Cancel
