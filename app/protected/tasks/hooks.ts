@@ -85,6 +85,19 @@ export const useTasks = (options?: { projectId?: number }) => {
         console.error('Error fetching labels:', labelsError);
       }
       
+      // Fetch task positions for kanban view
+      const { data: taskPositions, error: positionsError } = await supabase
+        .from('entity_positions')
+        .select('entity_id, position')
+        .eq('entity_type', 'task')
+        .eq('context', 'kanban')
+        .is('user_id', null)
+        .in('entity_id', taskIds);
+        
+      if (positionsError) {
+        console.error('Error fetching task positions:', positionsError);
+      }
+      
       // Fetch task metadata for time estimates
       const { data: taskMetadata, error: metadataError } = await supabase
         .from('task_metadata')
@@ -129,47 +142,45 @@ export const useTasks = (options?: { projectId?: number }) => {
         }
       }
       
-      // Transform the data into our expected format
+      // Map them to a more usable format
       const tasksWithRelations = rawTasks.map(task => {
-        // Get assignees for this task
-        const taskAssignees = (assignees || [])
-          .filter((a: {entity_id: number}) => a.entity_id === task.id)
-          .map((a: {entity_id: number, user_id: string}) => {
-            const user = usersData.find(u => u.id === a.user_id);
-            return {
-              ...a,
-              users: user || { 
-                id: a.user_id, 
-                raw_user_meta_data: { name: 'Unknown User' } 
-              }
-            };
-          });
+        // Get task's assignees
+        const taskAssignees = assignees
+          ?.filter(a => a.entity_id === task.id)
+          .map(a => a.user_id) || [];
         
-        // Get labels for this task
-        const taskLabels = (entityLabels || [])
-          .filter((l: {entity_id: number}) => l.entity_id === task.id);
+        // Get task's labels
+        const taskLabels = entityLabels
+          ?.filter(l => l.entity_id === task.id)
+          .map(l => l.labels) || [];
+          
+        // Get task's position
+        const taskPosition = taskPositions?.find(p => p.entity_id === task.id)?.position || null;
+          
+        // Get task's metadata
+        const taskMetadataItems = taskMetadata?.filter(m => m.task_id === task.id) || [];
         
-        // Get metadata for this task and transform it into an object
-        const taskMetadataItems = taskMetadata?.filter((m: {task_id: number}) => m.task_id === task.id) || [];
-        const metadataObj = taskMetadataItems.reduce((acc: Record<string, string>, item: TaskMetadata) => {
-          acc[item.title] = item.value;
+        // Convert metadata array to object for easier access
+        const metadataObj = taskMetadataItems.reduce((acc, item) => {
+          if (item.title && item.value) {
+            acc[item.title] = item.value;
+          }
           return acc;
-        }, {});
+        }, {} as Record<string, string>);
         
-        // Get commonly used metadata with proper type casting
-        const estimatedHours = metadataObj.estimated_hours ? parseFloat(metadataObj.estimated_hours) : null;
-        const actualHours = metadataObj.actual_hours ? parseFloat(metadataObj.actual_hours) : null;
+        // Extract hours from metadata for convenience
+        const estimatedHours = parseFloat(metadataObj['estimated_hours'] || '0');
+        const actualHours = parseFloat(metadataObj['actual_hours'] || '0');
         
         return {
           ...task,
-          // Add metadata fields
+          assignees: taskAssignees,
+          labels: taskLabels,
           metadata: taskMetadataItems,
-          metadataObj, // Add the metadata as an object for easy access
-          estimated_hours: estimatedHours,
-          actual_hours: actualHours,
-          // Add relationships
-          entity_assignees: taskAssignees,
-          entity_labels: taskLabels
+          metadataObj,
+          estimated_hours: isNaN(estimatedHours) ? 0 : estimatedHours,
+          actual_hours: isNaN(actualHours) ? 0 : actualHours,
+          position: taskPosition,
         } as TaskWithRelations;
       });
       

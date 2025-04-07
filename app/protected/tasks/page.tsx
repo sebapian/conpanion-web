@@ -1,14 +1,12 @@
 'use client'
 
+import React, { useState, useEffect, useMemo } from 'react'
 import { TaskCard } from '@/app/components/tasks/TaskCard'
 import { TaskColumnSkeleton } from '@/app/components/tasks/TaskColumnSkeleton'
 import { TaskCardSkeleton } from '@/app/components/tasks/TaskCardSkeleton'
-import { DragPlaceholder } from '@/app/components/tasks/DragPlaceholder'
-import { useTaskStatuses, useTaskPriorities } from './hooks'
-import { useTasks } from './hooks'
+import { useTaskStatuses, useTaskPriorities, useTasks } from './hooks'
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useState } from 'react'
 import { AddTaskDrawer } from '@/app/components/tasks/AddTaskDrawer'
 import { 
   DndContext, 
@@ -16,17 +14,22 @@ import {
   useSensors, 
   useSensor, 
   PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
   closestCorners,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
-  useDroppable,
+  UniqueIdentifier,
+  useDraggable,
+  useDroppable
 } from '@dnd-kit/core'
-import { 
-  SortableContext, 
-  rectSortingStrategy,
-  useSortable,
-  arrayMove 
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TaskWithRelations } from './models'
@@ -34,173 +37,305 @@ import { cn } from "@/lib/utils"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { Database } from '@/lib/supabase/types.generated'
 
-// Define CSS variables for styling
-const cardHoverBg = 'var(--card-hover-bg, rgba(0, 112, 243, 0.05))';
+// Define types for task position data
+type TaskPosition = {
+  id: number;
+  status_id: number;
+  position: number;
+};
 
 export default function TasksPage() {
   const { statuses, loading: loadingStatuses } = useTaskStatuses();
   const { priorities, loading: loadingPriorities } = useTaskPriorities();
-  const { tasks, loading: loadingTasks, refresh: refreshTasks } = useTasks();
+  const { tasks: remoteTasks, loading: loadingTasks, refresh: refreshTasks } = useTasks();
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [isAddTaskDrawerOpen, setIsAddTaskDrawerOpen] = useState(false);
+  const [dragOverInfo, setDragOverInfo] = useState<{
+    overTaskId: number | null;
+    overStatusId: number | null;
+  }>({ overTaskId: null, overStatusId: null });
   
-  // Drag and drop state
-  const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragCardHeight, setDragCardHeight] = useState<number>(0);
-  
-  // Configure sensors for drag and drop with disabled state
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Minimum drag distance before activation
-      },
-      // Add event handlers to prevent activation when drawer is open
-      eventListeners: {
-        // Cancel pointer down event if drawer is open
-        onPointerDown: ({ nativeEvent }: { nativeEvent: PointerEvent }) => {
-          if (isAddTaskDrawerOpen) {
-            nativeEvent.stopPropagation();
-            nativeEvent.preventDefault();
-            return false;
-          }
+  // Get the active task
+  const activeTask = useMemo(() => {
+    if (!activeId) return null;
+    return tasks.find(task => task.id === Number(activeId));
+  }, [activeId, tasks]);
+
+  // Generate ordered tasks for each status
+  const tasksByStatus = useMemo(() => {
+    const result: Record<number, TaskWithRelations[]> = {};
+    
+    if (statuses && tasks) {
+      // Initialize empty arrays for each status
+      statuses.forEach(status => {
+        result[status.id] = [];
+      });
+      
+      // Group tasks by status
+      tasks.forEach(task => {
+        if (task.status_id in result) {
+          result[task.status_id].push(task);
         }
-      }
-    })
-  );
-  
-  // Prevent drag start when drawer is open
-  const handleDragStart = (event: DragStartEvent) => {
-    // Block drag completely if a drawer is open
-    if (isAddTaskDrawerOpen) {
-      // Just return without setting active task
-      return;
+      });
+      
+      // Sort each group by position
+      Object.keys(result).forEach(statusId => {
+        result[Number(statusId)].sort((a, b) => (a.position || 0) - (b.position || 0));
+      });
     }
     
+    return result;
+  }, [statuses, tasks]);
+
+  // Sync remote data to local state
+  useEffect(() => {
+    if (remoteTasks) {
+      setTasks(remoteTasks);
+    }
+  }, [remoteTasks]);
+  
+  // Configure sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  );
+
+  // Handle drag start
+  const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const taskId = parseInt(active.id.toString());
-    const draggedTask = tasks.find(task => task.id === taskId);
+    setActiveId(active.id);
+  };
+
+  // Handle drag over for visual feedback
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
     
-    if (draggedTask) {
-      setActiveTask(draggedTask);
-      setIsDragging(true);
-      
-      // Get the dimensions of the card being dragged
-      const nodeElement = document.getElementById(`task-card-${taskId}`);
-      if (nodeElement) {
-        const { height } = nodeElement.getBoundingClientRect();
-        setDragCardHeight(height + 16); // Add space for margin
-      } else {
-        setDragCardHeight(140); // Fallback height including margin
+    if (!over || !active) return;
+    
+    const activeId = active.id;
+    const overId = over.id;
+    
+    // Check if hovering over a status column
+    if (typeof overId === 'string' && overId.startsWith('status-')) {
+      const statusId = Number(overId.replace('status-', ''));
+      setDragOverInfo({
+        overTaskId: null,
+        overStatusId: statusId
+      });
+    } else {
+      // Hovering over a task - use the task's status ID rather than task ID
+      const overTask = tasks.find(task => task.id === Number(overId));
+      console.log('overTask', overTask);
+      if (overTask) {
+        setDragOverInfo({
+          overTaskId: Number(overId),
+          overStatusId: overTask.status_id
+        });
       }
     }
   };
-  
-  // Handle drag end
+
+  // Handle drag end and persistence
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (!over || !active) {
-      setActiveTask(null);
-      setIsDragging(false);
+      setActiveId(null);
       return;
     }
     
-    const taskId = parseInt(active.id.toString());
+    const activeTaskId = Number(active.id);
+    const activeTask = tasks.find(task => task.id === activeTaskId);
     
-    // Extract the status ID from the container ID
-    // The ID format is either 'status-{statusId}' or just '{statusId}'
-    let statusId: number;
-    const overId = over.id.toString();
-    
-    if (overId.includes('status-')) {
-      statusId = parseInt(overId.split('-')[1]);
-    } else {
-      statusId = parseInt(overId);
+    if (!activeTask) {
+      setActiveId(null);
+      return;
     }
     
-    // Only update if the status has changed
-    const draggedTask = tasks.find(task => task.id === taskId);
-    if (draggedTask && draggedTask.status_id !== statusId) {
-      try {
-        console.log(`Moving task ${taskId} to status ${statusId}`);
+    try {
+      // Check if we're dropping directly on a status column
+      const isColumnDrop = typeof over.id === 'string' && over.id.startsWith('status-');
+      
+      if (isColumnDrop) {
+        // Dropping directly on a column
+        const dropStatusId = Number(over.id.toString().replace('status-', ''));
         
-        const supabase = getSupabaseClient();
-        const { error } = await supabase
-          .from('tasks')
-          .update({ 
-            status_id: statusId,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', taskId);
-          
-        if (error) {
-          console.error('Error updating task status:', error);
+        if (activeTask.status_id !== dropStatusId) {
+          // Only update if status changed
+          await updateTaskStatus(activeTaskId, dropStatusId);
         } else {
-          console.log('Task status updated successfully');
-          // Refresh tasks after successful update
-          refreshTasks();
+          // We're dropping back in the same column - move to the end
+          const tasksInColumn = tasksByStatus[dropStatusId] || [];
+          if (tasksInColumn.length > 0) {
+            const oldIndex = tasksInColumn.findIndex(t => t.id === activeTaskId);
+            if (oldIndex !== -1) {
+              await updateTaskOrder(dropStatusId, oldIndex, tasksInColumn.length - 1);
+            }
+          }
         }
-      } catch (error) {
-        console.error('Exception updating task status:', error);
+      } else {
+        // Dropping on another task
+        const overTaskId = Number(over.id);
+        const overTask = tasks.find(task => task.id === overTaskId);
+        
+        if (!overTask) {
+          console.error('Cannot find drop target task');
+          return;
+        }
+        
+        if (activeTask.status_id !== overTask.status_id) {
+          // Moving to a different column
+          await updateTaskStatus(activeTaskId, overTask.status_id);
+        } else {
+          // Reordering within the same column
+          const tasksInSameStatus = tasksByStatus[activeTask.status_id] || [];
+          const oldIndex = tasksInSameStatus.findIndex(t => t.id === activeTaskId);
+          const newIndex = tasksInSameStatus.findIndex(t => t.id === overTaskId);
+          
+          if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+            await updateTaskOrder(activeTask.status_id, oldIndex, newIndex);
+          }
+        }
       }
-    } else {
-      console.log('No status change needed, or task not found');
-    }
-    
-    setActiveTask(null);
-    setIsDragging(false);
-  };
-  
-  // Handle drag over
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    
-    if (!active || !over) return;
-    
-    // We're interested in the droppable status column containers
-    const isOverStatusContainer = over.id.toString().includes('status-');
-    
-    if (isOverStatusContainer) {
-      // The ID format is 'status-{statusId}'
-      const statusId = parseInt(over.id.toString().split('-')[1]);
-      const taskId = parseInt(active.id.toString());
-      
-      // Get the task that's being dragged
-      const draggedTask = tasks.find(task => task.id === taskId);
-      
-      // If we're dragging over the same status column that the task is already in,
-      // we don't need to update anything
-      if (draggedTask && draggedTask.status_id === statusId) {
-        return;
-      }
-      
-      // Always ensure we can drop into any column
-      // No restrictions on the number of cards per column
+    } catch (error) {
+      console.error('Error updating task', error);
+    } finally {
+      setActiveId(null);
+      setDragOverInfo({ overTaskId: null, overStatusId: null });
     }
   };
 
+  // Update task status and position in a new column
+  const updateTaskStatus = async (taskId: number, newStatusId: number) => {
+    const supabase = getSupabaseClient();
+    
+    // Get all tasks in the target status, ordered by position
+    const tasksInTargetStatus = tasksByStatus[newStatusId] || [];
+    
+    // Calculate position (place at the end by default)
+    let newPosition = tasksInTargetStatus.length > 0
+      ? Math.max(...tasksInTargetStatus.map(t => t.position || 0)) + 1000
+      : 1000;
+    
+    // Update in the database
+    await supabase
+      .from('tasks')
+      .update({ status_id: newStatusId })
+      .eq('id', taskId);
+    
+    // Update position in the database
+    await supabase
+      .from('entity_positions')
+      .upsert({
+        entity_id: taskId,
+        entity_type: 'task',
+        context: 'kanban',
+        position: newPosition
+      }, {
+        onConflict: 'entity_id,entity_type,context,user_id',
+        ignoreDuplicates: false
+      });
+    
+    // Optimistically update the local state
+    setTasks(tasks.map(task =>
+      task.id === taskId
+        ? { ...task, status_id: newStatusId, position: newPosition }
+        : task
+    ));
+  };
+
+  // Update task order within a column
+  const updateTaskOrder = async (statusId: number, oldIndex: number, newIndex: number) => {
+    // Get the ordered tasks for this status
+    const currentTasks = [...(tasksByStatus[statusId] || [])];
+    
+    // Safety checks
+    if (oldIndex < 0 || oldIndex >= currentTasks.length) {
+      console.error('Invalid oldIndex:', oldIndex, 'for tasks length:', currentTasks.length);
+      return;
+    }
+    
+    if (newIndex < 0 || newIndex >= currentTasks.length) {
+      console.error('Invalid newIndex:', newIndex, 'for tasks length:', currentTasks.length);
+      return;
+    }
+    
+    // Get the task that's being moved
+    const movedTask = currentTasks[oldIndex];
+    if (!movedTask) {
+      console.error('Cannot find task to move at index', oldIndex);
+      return;
+    }
+    
+    // Reorder tasks
+    const reorderedTasks = arrayMove(currentTasks, oldIndex, newIndex);
+    
+    // Calculate new positions with even spacing (1000 units apart by default)
+    const taskPositions: TaskPosition[] = reorderedTasks.map((task, index) => ({
+      id: task.id,
+      status_id: statusId,
+      position: (index + 1) * 1000
+    }));
+    
+    // Find the new position for our moved task
+    const newPosition = (newIndex + 1) * 1000;
+    
+    // Update positions in the database
+    const supabase = getSupabaseClient();
+    
+    try {
+      // Update the moved task position
+      await supabase
+        .from('entity_positions')
+        .upsert({
+          entity_id: movedTask.id,
+          entity_type: 'task',
+          context: 'kanban',
+          position: newPosition
+        }, {
+          onConflict: 'entity_id,entity_type,context,user_id',
+          ignoreDuplicates: false
+        });
+      
+      // Optimistically update local state
+      setTasks(tasks.map(task =>
+        taskPositions.some(tp => tp.id === task.id)
+          ? { ...task, position: taskPositions.find(tp => tp.id === task.id)!.position }
+          : task
+      ));
+    } catch (error) {
+      console.error('Error updating task position:', error);
+    }
+  };
+
+  // Check if the page is in a loading state
   const loading = loadingStatuses || loadingPriorities || loadingTasks;
 
+  // Loading skeleton view
   if (loading) {
     return (
       <div className="p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Tasks</h1>
-          <Button 
-            variant="default" 
-            className="flex items-center gap-1"
-            disabled
-          >
+          <Button variant="default" disabled className="flex items-center gap-1">
             <Plus size={16} />
             Add Task
           </Button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <TaskColumnSkeleton />
-            <TaskColumnSkeleton />
-            <TaskColumnSkeleton />
-            <TaskColumnSkeleton />
+          <TaskColumnSkeleton />
+          <TaskColumnSkeleton />
+          <TaskColumnSkeleton />
+          <TaskColumnSkeleton />
         </div>
       </div>
     );
@@ -221,65 +356,15 @@ export default function TasksPage() {
       </div>
       
       {isAddTaskDrawerOpen ? (
-        // When drawer is open, render tasks without DndContext
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {statuses.map((status) => (
-            <div
-              key={status.id}
-              className="bg-card border border-border rounded-lg p-4"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">{status.name}</h3>
-                <div 
-                  className="w-6 h-6 rounded-full"
-                  style={{ backgroundColor: status.color || '#E2E8F0' }}
-                />
-              </div>
-              
-              <div className="space-y-4">
-                {tasks
-                  .filter((task) => task.status_id === status.id)
-                  .map((task) => {
-                    // Filter out null labels and provide fallback for priority
-                    const taskPriority = task.priorities || {
-                      id: 0,
-                      name: 'No Priority',
-                      color: '#E2E8F0',
-                      position: 0,
-                      is_default: false,
-                      project_id: 0,
-                      created_at: '',
-                      created_by: ''
-                    };
-                    
-                    const taskLabels = task.entity_labels
-                      ?.map((el) => el.labels)
-                      .filter((label): label is NonNullable<typeof label> => label !== null) || [];
-                      
-                    return (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      status={status}
-                        priority={taskPriority}
-                        labels={taskLabels}
-                      assignees={task.entity_assignees?.map((ea) => ({
-                        id: ea.user_id,
-                        name: ea.users.raw_user_meta_data.name,
-                        avatar_url: ea.users.raw_user_meta_data.avatar_url,
-                      })) ?? []}
-                        allStatuses={statuses}
-                        allPriorities={priorities}
-                        refreshTasks={refreshTasks}
-                    />
-                    );
-                  })}
-              </div>
-            </div>
-          ))}
-        </div>
+        // Static view when drawer is open
+        <TaskColumnsStatic 
+          statuses={statuses}
+          tasksByStatus={tasksByStatus}
+          priorities={priorities}
+          refreshTasks={refreshTasks}
+        />
       ) : (
-        // Normal drag-and-drop enabled view
+        // Interactive drag-and-drop view
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -288,51 +373,44 @@ export default function TasksPage() {
           onDragEnd={handleDragEnd}
         >
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {statuses.map((status) => (
-              <StatusColumn 
-                key={status.id} 
+            {statuses.map(status => (
+              <TaskColumn
+                key={status.id}
                 status={status}
-                tasks={tasks.filter((task) => task.status_id === status.id)}
+                tasks={tasksByStatus[status.id] || []}
+                activeId={activeId}
+                dragOverInfo={dragOverInfo}
                 allStatuses={statuses}
                 allPriorities={priorities}
                 refreshTasks={refreshTasks}
-                isDragging={isDragging}
-                activeTaskId={activeTask?.id}
-                dragCardHeight={dragCardHeight}
-                isAddTaskDrawerOpen={isAddTaskDrawerOpen}
               />
             ))}
           </div>
           
-          {/* Drag overlay to show what's being dragged */}
-          <DragOverlay adjustScale={false} zIndex={100}>
+          {/* Drag overlay shows the task being dragged */}
+          <DragOverlay adjustScale={false}>
             {activeTask && (
-              <div style={{ height: `${dragCardHeight}px` }}>
+              <div className="w-full opacity-90">
                 <TaskCard
                   task={activeTask}
                   status={statuses.find(s => s.id === activeTask.status_id) || statuses[0]}
-                  priority={activeTask.priorities || {
-                    id: 0,
-                    name: 'No Priority',
-                    color: '#E2E8F0',
-                    position: 0,
-                    is_default: false,
-                    project_id: 0,
-                    created_at: '',
-                    created_by: ''
+                  priority={activeTask.priorities || { 
+                    id: 0, name: 'No Priority', color: '#E2E8F0',
+                    position: 0, is_default: false, project_id: 0, 
+                    created_at: '', created_by: ''
                   }}
                   labels={activeTask.entity_labels
-                    ?.map((el) => el.labels)
+                    ?.map(el => el.labels)
                     .filter((label): label is NonNullable<typeof label> => label !== null) || []}
-                  assignees={activeTask.entity_assignees?.map((ea) => ({
+                  assignees={activeTask.entity_assignees?.map(ea => ({
                     id: ea.user_id,
                     name: ea.users.raw_user_meta_data.name,
                     avatar_url: ea.users.raw_user_meta_data.avatar_url,
-                  })) ?? []}
+                  })) || []}
                   allStatuses={statuses}
                   allPriorities={priorities}
                   refreshTasks={refreshTasks}
-                  className="opacity-80 shadow-xl cursor-grabbing"
+                  className="cursor-grabbing shadow-lg"
                 />
               </div>
             )}
@@ -349,122 +427,210 @@ export default function TasksPage() {
         refreshTasks={refreshTasks}
       />
       
-      {/* Full-screen overlay when drawer is open to block all background interactions */}
+      {/* Full-screen overlay when drawer is open */}
       {isAddTaskDrawerOpen && (
         <div 
           className="fixed inset-0 bg-transparent" 
-          style={{ 
-            pointerEvents: 'auto',
-            cursor: 'default',
-            touchAction: 'none',
-            zIndex: 45 // High enough to be above tasks but below drawer (z-50)
-          }}
-          aria-hidden="true"
+          style={{ pointerEvents: 'auto', zIndex: 45 }}
           onClick={() => setIsAddTaskDrawerOpen(false)}
         />
       )}
     </div>
-  )
+  );
 }
 
-// Wrapper component to make TaskCard draggable
-interface DraggableTaskCardProps extends React.ComponentProps<typeof TaskCard> {
-  isDragging?: boolean;
-  isAddTaskDrawerOpen?: boolean;
+// Static view of columns when add drawer is open
+function TaskColumnsStatic({ 
+  statuses, 
+  tasksByStatus, 
+  priorities, 
+  refreshTasks 
+}: { 
+  statuses: Database['public']['Tables']['statuses']['Row'][], 
+  tasksByStatus: Record<number, TaskWithRelations[]>, 
+  priorities: Database['public']['Tables']['priorities']['Row'][], 
+  refreshTasks: () => void 
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {statuses.map(status => (
+        <div
+          key={status.id}
+          className="bg-card border border-border rounded-lg p-4"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium">{status.name}</h3>
+            <div 
+              className="w-6 h-6 rounded-full"
+              style={{ backgroundColor: status.color || '#E2E8F0' }}
+            />
+          </div>
+          
+          <div className="space-y-4">
+            {(tasksByStatus[status.id] || []).map(task => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status={status}
+                priority={task.priorities || { 
+                  id: 0, name: 'No Priority', color: '#E2E8F0',
+                  position: 0, is_default: false, project_id: 0, 
+                  created_at: '', created_by: ''
+                }}
+                labels={task.entity_labels
+                  ?.map(el => el.labels)
+                  .filter((label): label is NonNullable<typeof label> => label !== null) || []}
+                assignees={task.entity_assignees?.map(ea => ({
+                  id: ea.user_id,
+                  name: ea.users.raw_user_meta_data.name,
+                  avatar_url: ea.users.raw_user_meta_data.avatar_url,
+                })) || []}
+                allStatuses={statuses}
+                allPriorities={priorities}
+                refreshTasks={refreshTasks}
+              />
+            ))}
+            
+            {(tasksByStatus[status.id] || []).length === 0 && (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                No tasks
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function DraggableTaskCard({ task, isDragging, isAddTaskDrawerOpen, ...props }: DraggableTaskCardProps) {
+// Sortable task card
+function SortableTaskCard({ 
+  task, 
+  isActive,
+  allStatuses,
+  allPriorities,
+  refreshTasks
+}: { 
+  task: TaskWithRelations, 
+  isActive: boolean,
+  allStatuses: Database['public']['Tables']['statuses']['Row'][],
+  allPriorities: Database['public']['Tables']['priorities']['Row'][],
+  refreshTasks: () => void
+}) {
   const { 
     attributes, 
     listeners, 
     setNodeRef, 
     transform, 
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ 
+    transition, 
+    isDragging 
+  } = useSortable({
     id: task.id,
-    data: task,
-    disabled: isAddTaskDrawerOpen // Disable sortable when drawer is open
+    data: task
   });
   
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isSortableDragging ? 0.3 : 1,
-    cursor: isSortableDragging ? 'grabbing' : 'grab',
-    zIndex: isSortableDragging ? 10 : 'auto',
+    opacity: isActive || isDragging ? 0.4 : 1
   };
   
   return (
     <div
       ref={setNodeRef}
-      id={`task-card-${task.id}`}
-      style={style}
       {...attributes}
       {...listeners}
+      style={style}
       className={cn(
-        "touch-none transition-all duration-200",
-        isDragging && "z-10",
-        isAddTaskDrawerOpen && "pointer-events-none"
+        "touch-none focus:outline-none",
+        isDragging ? "z-10" : ""
       )}
     >
-      <TaskCard 
+      <TaskCard
         task={task}
-        {...props}
+        status={allStatuses.find(s => s.id === task.status_id) || allStatuses[0]}
+        priority={task.priorities || { 
+          id: 0, name: 'No Priority', color: '#E2E8F0',
+          position: 0, is_default: false, project_id: 0, 
+          created_at: '', created_by: ''
+        }}
+        labels={task.entity_labels
+          ?.map(el => el.labels)
+          .filter((label): label is NonNullable<typeof label> => label !== null) || []}
+        assignees={task.entity_assignees?.map(ea => ({
+          id: ea.user_id,
+          name: ea.users.raw_user_meta_data.name,
+          avatar_url: ea.users.raw_user_meta_data.avatar_url,
+        })) || []}
+        allStatuses={allStatuses}
+        allPriorities={allPriorities}
+        refreshTasks={refreshTasks}
+        className={cn(
+          "cursor-grab active:cursor-grabbing",
+          isDragging && "ring-2 ring-primary"
+        )}
       />
     </div>
   );
 }
 
-interface StatusColumnProps {
-  status: Database['public']['Tables']['statuses']['Row'];
-  tasks: TaskWithRelations[];
-  allStatuses: Database['public']['Tables']['statuses']['Row'][];
-  allPriorities: Database['public']['Tables']['priorities']['Row'][];
-  refreshTasks: () => void;
-  isDragging: boolean;
-  activeTaskId?: number;
-  dragCardHeight: number;
-  isAddTaskDrawerOpen: boolean;
+// Add this component before the TaskColumn component
+function TaskPlaceholder() {
+  return (
+    <div className="border-2 border-dashed border-primary/40 bg-primary/5 rounded-lg p-3 animate-pulse">
+      <div className="h-4 w-3/4 bg-primary/10 rounded mb-3"></div>
+      <div className="h-3 w-1/2 bg-primary/10 rounded mb-2"></div>
+      <div className="h-3 w-full bg-primary/10 rounded"></div>
+    </div>
+  );
 }
 
-function StatusColumn({ 
-  status, 
-  tasks, 
+// Now, update the TaskColumn component for better drag and drop handling:
+function TaskColumn({ 
+  status,
+  tasks,
+  activeId,
+  dragOverInfo,
   allStatuses,
-  allPriorities, 
-  refreshTasks,
-  isDragging,
-  activeTaskId,
-  dragCardHeight,
-  isAddTaskDrawerOpen
-}: StatusColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
+  allPriorities,
+  refreshTasks
+}: {
+  status: Database['public']['Tables']['statuses']['Row'],
+  tasks: TaskWithRelations[],
+  activeId: UniqueIdentifier | null,
+  dragOverInfo: { overTaskId: number | null, overStatusId: number | null },
+  allStatuses: Database['public']['Tables']['statuses']['Row'][],
+  allPriorities: Database['public']['Tables']['priorities']['Row'][],
+  refreshTasks: () => void
+}) {
+  // Set up the column as a droppable area
+  const { setNodeRef } = useDroppable({
     id: `status-${status.id}`,
-    data: { statusId: status.id }
+    data: {
+      type: 'status',
+      status
+    }
   });
   
-  // Calculate a minimum height based on tasks length
-  const tasksHeight = tasks.length * 130; // Approximate height of a task card plus margin
-  const minColumnHeight = tasksHeight > 0 ? tasksHeight : 200; // Minimum height to prevent flickering
+  // Filter out active task to prevent duplicates
+  const visibleTasks = tasks.filter(task => 
+    activeId === null || task.id !== Number(activeId)
+  );
 
+  // Check if this column is the current drop target
+  const isColumnActive = dragOverInfo.overStatusId === status.id;
+  const isActiveTaskFromSameColumn = activeId !== null && tasks.some(task => task.id === Number(activeId));
+  const showPlaceholder = isColumnActive && activeId !== null && !isActiveTaskFromSameColumn;
+  
   return (
-    <div
+    <div 
       ref={setNodeRef}
       className={cn(
-        "relative bg-card border border-border rounded-lg p-4 transition-all duration-200",
-        isOver && isDragging && "ring-2 ring-blue-500 ring-inset"
+        "bg-card border border-border rounded-lg p-4 min-h-[12rem] flex flex-col transition-colors duration-200",
+        isColumnActive && "ring-2 ring-primary/50 bg-primary/5"
       )}
-      style={isDragging ? { 
-        // Apply a stable minimum height during any drag operation
-        minHeight: `${minColumnHeight}px`,
-        // Always ensure there's space for a new card at the bottom when dragging
-        ...(isOver ? { 
-          paddingBottom: `${dragCardHeight + 16}px`,
-          background: cardHoverBg
-        } : {})
-      } : {}}
     >
+      {/* Column header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium">{status.name}</h3>
         <div 
@@ -473,67 +639,35 @@ function StatusColumn({
         />
       </div>
       
-      <SortableContext
-        items={tasks.map(task => task.id)}
-        strategy={rectSortingStrategy}
+      {/* Sortable task list */}
+      <SortableContext 
+        items={visibleTasks.map(task => task.id)}
+        strategy={verticalListSortingStrategy}
       >
-        <div 
-          className="space-y-4" 
-          id={status.id.toString()} 
-          data-status-id={status.id}
-        >
-          {/* Only render tasks that aren't being dragged */}
-          {tasks.map((task) => {
-            // Skip rendering the currently dragged task in its original position
-            if (task.id === activeTaskId) return null;
-            
-            // Filter out null labels and provide fallback for priority
-            const taskPriority = task.priorities || {
-              id: 0,
-              name: 'No Priority',
-              color: '#E2E8F0',
-              position: 0,
-              is_default: false,
-              project_id: 0,
-              created_at: '',
-              created_by: ''
-            };
-            
-            const taskLabels = task.entity_labels
-              ?.map((el) => el.labels)
-              .filter((label): label is NonNullable<typeof label> => label !== null) || [];
-              
-            return (
-              <DraggableTaskCard
-                key={task.id}
-                task={task}
-                status={status}
-                priority={taskPriority}
-                labels={taskLabels}
-                assignees={task.entity_assignees?.map((ea) => ({
-                  id: ea.user_id,
-                  name: ea.users.raw_user_meta_data.name,
-                  avatar_url: ea.users.raw_user_meta_data.avatar_url,
-                })) ?? []}
-                allStatuses={allStatuses}
-                allPriorities={allPriorities}
-                refreshTasks={refreshTasks}
-                isDragging={activeTaskId === task.id}
-                isAddTaskDrawerOpen={isAddTaskDrawerOpen}
-              />
-            );
-          })}
+        <div className="flex-1 space-y-3">
+          {visibleTasks.map((task) => (
+            <SortableTaskCard
+              key={task.id}
+              task={task}
+              isActive={activeId === task.id}
+              allStatuses={allStatuses}
+              allPriorities={allPriorities}
+              refreshTasks={refreshTasks}
+            />
+          ))}
           
-          {/* Placeholder for the dragged task */}
-          {isDragging && (
-            <div 
-              className={`absolute bottom-4 left-4 right-4 transition-all duration-150 ${isOver ? 'opacity-100' : 'opacity-0'}`}
-              style={{ 
-                transform: isOver ? 'translateY(0)' : 'translateY(10px)',
-                zIndex: 5 // Ensure the placeholder is always visible
-              }}
-            >
-              <DragPlaceholder height={dragCardHeight} />
+          {/* Show placeholder if task is being dragged over this column */}
+          {showPlaceholder && (
+            <TaskPlaceholder />
+          )}
+          
+          {/* Empty state */}
+          {visibleTasks.length === 0 && !showPlaceholder && (
+            <div className={cn(
+              "text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg",
+              isColumnActive ? "bg-primary/5 border-primary/30" : "border-border"
+            )}>
+              {isColumnActive ? "Drop task here" : "No tasks"}
             </div>
           )}
         </div>
