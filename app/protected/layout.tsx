@@ -1,19 +1,16 @@
-import { createClient } from "@/utils/supabase/server";
+'use client'
 import { redirect } from "next/navigation";
 import ClientLayout from './client-layout';
+import { useAuth } from "@/hooks/useAuth";
 
-export default async function ProtectedLayout({
+export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
+  const { user, loading } = useAuth();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  if (!user && !loading) {
     return redirect("/sign-in");
   }
 
