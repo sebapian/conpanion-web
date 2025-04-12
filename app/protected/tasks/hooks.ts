@@ -128,10 +128,10 @@ export const useTasks = (options?: { projectId?: number }) => {
           }
           
           // If the RPC function doesn't exist yet, create a fallback
-          usersData = users || userIds.map(id => ({
+          usersData = (users as UserData[] || userIds.map(id => ({
             id,
             raw_user_meta_data: { name: 'User ' + id.substring(0, 6) }
-          }));
+          }))) as UserData[];
         } catch (err) {
           console.error('Exception fetching user details:', err);
           // Provide fallback user data
