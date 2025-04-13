@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
-import { createForm } from "@/lib/api/forms";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Plus } from 'lucide-react';
+import { createForm } from '@/lib/api/forms';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   DndContext,
   closestCenter,
@@ -23,16 +23,16 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { FormBuilderProps, FormBuilderQuestion } from "@/lib/types/form-builder";
-import { generateFormItems } from "@/lib/utils/form-utils";
-import { SortableQuestionCard } from "./sortable-question-card";
+} from '@dnd-kit/sortable';
+import { FormBuilderProps, FormBuilderQuestion } from '@/lib/types/form-builder';
+import { generateFormItems } from '@/lib/utils/form-utils';
+import { SortableQuestionCard } from './sortable-question-card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,16 +42,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 
 export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuilderProps) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState('');
   const [questions, setQuestions] = useState<FormBuilderQuestion[]>([
     {
-      id: "1",
-      type: "question",
-      title: "",
+      id: '1',
+      type: 'question',
+      title: '',
       required: false,
     },
   ]);
@@ -62,12 +62,12 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       setQuestions((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
@@ -80,17 +80,15 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
   const addQuestion = () => {
     const newQuestion: FormBuilderQuestion = {
       id: String(questions.length + 1),
-      type: "question",
-      title: "",
+      type: 'question',
+      title: '',
       required: false,
     };
     setQuestions([...questions, newQuestion]);
   };
 
   const updateQuestion = (id: string, updates: Partial<FormBuilderQuestion>) => {
-    setQuestions(
-      questions.map((q) => (q.id === id ? { ...q, ...updates } : q))
-    );
+    setQuestions(questions.map((q) => (q.id === id ? { ...q, ...updates } : q)));
   };
 
   const deleteQuestion = (id: string) => {
@@ -98,7 +96,10 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
   };
 
   const hasUnsavedChanges = () => {
-    return title.trim() !== "" || questions.some(q => q.title.trim() !== "" || q.options?.some(opt => opt.trim() !== ""));
+    return (
+      title.trim() !== '' ||
+      questions.some((q) => q.title.trim() !== '' || q.options?.some((opt) => opt.trim() !== ''))
+    );
   };
 
   const handleClose = (open: boolean) => {
@@ -110,13 +111,15 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
   };
 
   const handleDiscard = () => {
-    setTitle("");
-    setQuestions([{
-      id: "1",
-      type: "question",
-      title: "",
-      required: false,
-    }]);
+    setTitle('');
+    setQuestions([
+      {
+        id: '1',
+        type: 'question',
+        title: '',
+        required: false,
+      },
+    ]);
     setShowDiscardDialog(false);
     onOpenChange(false);
   };
@@ -124,19 +127,19 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      
+
       await createForm({
-        name: title.trim() || "New form",
+        name: title.trim() || 'New form',
         items: generateFormItems(questions),
       });
 
-      toast.success("Form created successfully");
+      toast.success('Form created successfully');
       onOpenChange(false);
       onFormCreated?.();
       router.refresh(); // Refresh the page to show the new form
     } catch (error) {
-      console.error("Error creating form:", error);
-      toast.error("Failed to create form. Please try again.");
+      console.error('Error creating form:', error);
+      toast.error('Failed to create form. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -145,18 +148,18 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="sr-only">Create Form</DialogTitle>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="New form"
-              className="text-2xl font-semibold border-none bg-transparent focus-visible:ring-0 px-0 text-foreground placeholder:text-muted-foreground/60"
+              className="border-none bg-transparent px-0 text-2xl font-semibold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0"
             />
           </DialogHeader>
 
-          <div className="space-y-4 my-4">
+          <div className="my-4 space-y-4">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -164,7 +167,7 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
               modifiers={[]}
             >
               <SortableContext
-                items={questions.map(q => q.id)}
+                items={questions.map((q) => q.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-4">
@@ -183,12 +186,8 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
             </DndContext>
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={addQuestion}
-          >
-            <Plus className="h-4 w-4 mr-2" />
+          <Button variant="outline" className="w-full" onClick={addQuestion}>
+            <Plus className="mr-2 h-4 w-4" />
             Add question
           </Button>
 
@@ -196,12 +195,8 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
             <Button variant="outline" onClick={() => handleClose(false)}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create form"}
+            <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create form'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -223,4 +218,4 @@ export function CreateFormDialog({ open, onOpenChange, onFormCreated }: FormBuil
       </AlertDialog>
     </>
   );
-} 
+}

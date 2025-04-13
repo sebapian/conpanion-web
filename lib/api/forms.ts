@@ -1,5 +1,11 @@
 import { createClient } from '@/utils/supabase/client';
-import { Form, FormItem, CreateFormRequest, UpdateFormRequest, FormResponse } from '@/lib/types/form';
+import {
+  Form,
+  FormItem,
+  CreateFormRequest,
+  UpdateFormRequest,
+  FormResponse,
+} from '@/lib/types/form';
 
 const supabase = createClient();
 
@@ -121,10 +127,7 @@ export async function updateForm(id: number, request: UpdateFormRequest): Promis
   // If items are provided, update them
   if (request.items && request.items.length > 0) {
     // Delete existing items
-    const { error: deleteError } = await supabase
-      .from('form_items')
-      .delete()
-      .eq('form_id', id);
+    const { error: deleteError } = await supabase.from('form_items').delete().eq('form_id', id);
 
     if (deleteError) {
       console.error('Error deleting form items:', deleteError);
@@ -182,4 +185,4 @@ export async function deleteForm(id: number): Promise<void> {
     console.error('Error deleting form:', error);
     throw error;
   }
-} 
+}

@@ -40,4 +40,4 @@ export interface UpdateFormRequest {
 export interface FormResponse {
   form: Form;
   items: FormItem[];
-} 
+}
