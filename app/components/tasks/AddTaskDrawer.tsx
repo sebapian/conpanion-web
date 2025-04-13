@@ -118,7 +118,8 @@ export function AddTaskDrawer({
           due_date: dueDate ? dueDate.toISOString() : null,
           created_at: now,
           updated_at: now,
-          created_by: user?.id
+          created_by: user?.id,
+          project_id: user?.activeProjectId
         })
         .select('id')
         .single();
@@ -138,7 +139,7 @@ export function AddTaskDrawer({
           entity_type: 'tasks',
           entity_id: taskId,
           label_id: label.id,
-          created_by: user.id
+          created_by: user.id,
         }));
         
         const { error: labelError } = await supabase

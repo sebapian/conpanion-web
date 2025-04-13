@@ -65,22 +65,19 @@ export function TaskDrawer({
   // Metadata collapsed state
   const [metadataCollapsed, setMetadataCollapsed] = useState(true);
   
-  // Time tracking state
+  // Use the task metadata hook
   const {
     metadata,
-    metadataMap,
-    estimated_hours,
-    actual_hours, 
     loading: loadingMetadata,
-    saving: savingMetadata,
     error: metadataError,
-    saveMetadataItem
+    setMetadataValue
   } = useTaskMetadata(task.id);
   
   const [editingEstimatedHours, setEditingEstimatedHours] = useState(false);
   const [estimatedHoursValue, setEstimatedHoursValue] = useState<string>('');
   const [editingActualHours, setEditingActualHours] = useState(false);
   const [actualHoursValue, setActualHoursValue] = useState<string>('');
+  const [savingMetadata, setSavingMetadata] = useState(false);
   
   // Use the task comments hook
   const { 
@@ -119,11 +116,16 @@ export function TaskDrawer({
 
   // Update estimated/actual hours from metadata when loaded
   useEffect(() => {
-    if (metadataMap) {
-      setEstimatedHoursValue(metadataMap.estimated_hours?.toString() || '');
-      setActualHoursValue(metadataMap.actual_hours?.toString() || '');
+    if (metadata) {
+      const metadataObj = metadata.reduce((acc, item) => {
+        acc[item.title] = item.value;
+        return acc;
+      }, {} as Record<string, string | null>);
+      
+      setEstimatedHoursValue(metadataObj['estimated_hours'] || '');
+      setActualHoursValue(metadataObj['actual_hours'] || '');
     }
-  }, [metadataMap]);
+  }, [metadata]);
 
   // Focus the input when editing starts
   useEffect(() => {
@@ -360,22 +362,24 @@ export function TaskDrawer({
     // If invalid number, clear the error and cancel edit mode
     if (estimatedHoursValue.trim() && (isNaN(Number(estimatedHoursValue)) || Number(estimatedHoursValue) < 0)) {
       setEditingEstimatedHours(false);
-      setEstimatedHoursValue(estimated_hours?.toString() || '');
+      setEstimatedHoursValue(metadata.find(m => m.title === 'estimated_hours')?.value || '');
       return;
     }
     
     // If no change, just exit edit mode
-    if ((hours === null && estimated_hours === null) || 
-        (hours !== null && estimated_hours !== null && hours === estimated_hours)) {
+    const currentEstimatedHours = metadata.find(m => m.title === 'estimated_hours')?.value;
+    if ((hours === null && !currentEstimatedHours) || 
+        (hours !== null && currentEstimatedHours && hours === parseFloat(currentEstimatedHours))) {
       setEditingEstimatedHours(false);
       return;
     }
     
-    const result = await saveMetadataItem('estimated_hours', hours);
-    
-    if (result.success) {
+    try {
+      await setMetadataValue('estimated_hours', hours?.toString() || null);
       setEditingEstimatedHours(false);
-      refreshTasks(); // Refresh tasks to show updated metadata
+      refreshTasks();
+    } catch (err) {
+      console.error('Error saving estimated hours:', err);
     }
   };
   
@@ -385,22 +389,24 @@ export function TaskDrawer({
     // If invalid number, clear the error and cancel edit mode
     if (actualHoursValue.trim() && (isNaN(Number(actualHoursValue)) || Number(actualHoursValue) < 0)) {
       setEditingActualHours(false);
-      setActualHoursValue(actual_hours?.toString() || '');
+      setActualHoursValue(metadata.find(m => m.title === 'actual_hours')?.value || '');
       return;
     }
     
     // If no change, just exit edit mode
-    if ((hours === null && actual_hours === null) || 
-        (hours !== null && actual_hours !== null && hours === actual_hours)) {
+    const currentActualHours = metadata.find(m => m.title === 'actual_hours')?.value;
+    if ((hours === null && !currentActualHours) || 
+        (hours !== null && currentActualHours && hours === parseFloat(currentActualHours))) {
       setEditingActualHours(false);
       return;
     }
     
-    const result = await saveMetadataItem('actual_hours', hours);
-    
-    if (result.success) {
+    try {
+      await setMetadataValue('actual_hours', hours?.toString() || null);
       setEditingActualHours(false);
-      refreshTasks(); // Refresh tasks to show updated metadata
+      refreshTasks();
+    } catch (err) {
+      console.error('Error saving actual hours:', err);
     }
   };
 
@@ -408,7 +414,7 @@ export function TaskDrawer({
     if (e.key === 'Enter') {
       handleEstimatedHoursSave();
     } else if (e.key === 'Escape') {
-      setEstimatedHoursValue(estimated_hours?.toString() || '');
+      setEstimatedHoursValue(metadata.find(m => m.title === 'estimated_hours')?.value || '');
       setEditingEstimatedHours(false);
     }
   };
@@ -417,7 +423,7 @@ export function TaskDrawer({
     if (e.key === 'Enter') {
       handleActualHoursSave();
     } else if (e.key === 'Escape') {
-      setActualHoursValue(actual_hours?.toString() || '');
+      setActualHoursValue(metadata.find(m => m.title === 'actual_hours')?.value || '');
       setEditingActualHours(false);
     }
   };
@@ -443,37 +449,37 @@ export function TaskDrawer({
   const handleAddMetadata = async () => {
     if (!newMetadataTitle.trim() || !newMetadataValue.trim()) return;
     
-    // Convert common numeric inputs to proper format
-    let value = newMetadataValue.trim();
-    if (!isNaN(Number(value))) {
-      // Keep numeric format for saving in the database
-      value = value;
-    }
-    
-    const result = await saveMetadataItem(newMetadataTitle.trim(), value);
-    
-    if (result.success) {
+    setSavingMetadata(true);
+    try {
+      await setMetadataValue(newMetadataTitle.trim(), newMetadataValue.trim());
       setNewMetadataTitle('');
       setNewMetadataValue('');
       setShowAddMetadataForm(false);
       refreshTasks();
+    } catch (err) {
+      console.error('Error adding metadata:', err);
+    } finally {
+      setSavingMetadata(false);
     }
   };
   
-  const handleEditMetadata = async (id: number, title: string, newValue: string) => {
-    const result = await saveMetadataItem(title, newValue);
-    
-    if (result.success) {
+  const handleEditMetadata = async (id: number, title: string, value: string) => {
+    try {
+      await setMetadataValue(title, value);
       setEditingMetadataId(null);
+      setNewMetadataValue('');
       refreshTasks();
+    } catch (err) {
+      console.error('Error editing metadata:', err);
     }
   };
   
   const handleDeleteMetadata = async (title: string) => {
-    const result = await saveMetadataItem(title, null);
-    
-    if (result.success) {
+    try {
+      await setMetadataValue(title, null);
       refreshTasks();
+    } catch (err) {
+      console.error('Error deleting metadata:', err);
     }
   };
 
@@ -964,7 +970,7 @@ export function TaskDrawer({
                                 <button
                                   onClick={() => {
                                     setEditingMetadataId(item.id);
-                                    setNewMetadataValue(item.value);
+                                    setNewMetadataValue(item.value || '');
                                   }}
                                   className="text-muted-foreground hover:text-foreground p-1"
                                 >

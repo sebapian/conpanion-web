@@ -40,12 +40,15 @@ export function useAuth() {
           })
         }
 
+        // use this for testing, use 1 by default
+        let projectId: number = 1;
         // const { data: projects } = await supabase.from('projects').select('id').eq('owner_id', session?.user?.id)
-        const { data: projects } = await supabase.from('projects').select('id').eq('id', 1) // use this for testing
+        const { data: projects } = await supabase.from('projects').select('id').eq('id', projectId)
         if (!projects?.length) {
           
           // Create project first
           const { data: newProject, error: projectError } = await supabase.from('projects').insert({
+            id: 1,
             owner_id: session?.user?.id,
             name: `${session?.user?.email}'s Project`,
             description: `${session?.user?.email}'s Project Description`,
@@ -59,9 +62,15 @@ export function useAuth() {
             return
           }
 
+          projectId = newProject.id;
+        }
+
+        const { data: projectUser } = await supabase.from('projects_users').select('id').eq('project_id', projectId).eq('user_id', session?.user?.id).single()
+
+        if (!projectUser) {
           // Create project-user relationship
           const { error: relationError } = await supabase.from('projects_users').insert({
-            project_id: newProject.id,
+            project_id: projectId,
             user_id: session?.user?.id,
             role: 'owner',
             created_by: session?.user?.id
@@ -73,17 +82,12 @@ export function useAuth() {
             setLoading(false)
             return
           }
-
-          setUser({
-            ...session?.user,
-            activeProjectId: newProject.id
-          })
-        } else {
-          setUser({
-            ...session?.user,
-            activeProjectId: projects[0].id
-          })
         }
+        
+        setUser({
+          ...session?.user,
+          activeProjectId: projectId
+        })
       } catch (error) {
         console.error('Error getting auth session:', error)
         setUser(null)
