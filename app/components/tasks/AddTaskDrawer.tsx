@@ -17,12 +17,6 @@ type Status = Database['public']['Tables']['statuses']['Row']
 type Priority = Database['public']['Tables']['priorities']['Row']
 type Label = Database['public']['Tables']['labels']['Row']
 
-// Define the task insert type explicitly
-type TaskInsert = Database['public']['Tables']['tasks']['Insert']
-type EntityLabelInsert = Database['public']['Tables']['entity_labels']['Insert']
-type TaskMetadataInsert = Database['public']['Tables']['task_metadata']['Insert']
-type LabelInsert = Database['public']['Tables']['labels']['Insert']
-
 interface AddTaskDrawerProps {
   isOpen: boolean
   onClose: () => void
@@ -50,9 +44,6 @@ export function AddTaskDrawer({
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Default project ID (replace with a real value if available)
-  const defaultProjectId = 1;
   
   // Label creation popup state
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
@@ -109,30 +100,21 @@ export function AddTaskDrawer({
 
     try {
       const supabase = getSupabaseClient();
-      const userId = user?.id;
       
-      if (!userId) {
-        setError('User not authenticated');
-        setSaving(false);
-        return;
-      }
-      
+      // 1. Create the task
       const now = new Date().toISOString();
-      
-      // Create task with explicit type annotation
-      const taskInsert: TaskInsert = {
-        title: title.trim(),
-        description: description.trim() || null,
-        status_id: statusId || 0, 
-        priority_id: priorityId || 0,
-        due_date: dueDate ? dueDate.toISOString() : null,
-        created_by: userId,
-        project_id: defaultProjectId
-      };
-
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
-        .insert(taskInsert)
+        .insert({
+          title: title.trim(),
+          description: description.trim() || null,
+          status_id: statusId,
+          priority_id: priorityId,
+          due_date: dueDate ? dueDate.toISOString() : null,
+          created_at: now,
+          updated_at: now,
+          created_by: user?.id
+        })
         .select('id')
         .single();
       
@@ -147,16 +129,13 @@ export function AddTaskDrawer({
       
       // 2. Add labels if any are selected
       if (selectedLabels.length > 0) {
-        const labelLinks: EntityLabelInsert[] = selectedLabels.map(label => ({
-          entity_type: 'tasks',
-          entity_id: taskId,
-          label_id: label.id,
-          created_at: now,
-          created_by: userId
+        const labelLinks = selectedLabels.map(label => ({
+          task_id: taskId,
+          label_id: label.id
         }));
         
         const { error: labelError } = await supabase
-          .from('entity_labels')
+          .from('task_labels')
           .insert(labelLinks);
           
         if (labelError) {
@@ -182,13 +161,13 @@ export function AddTaskDrawer({
       }
       
       if (metadata.length > 0) {
-        const metadataRecords: TaskMetadataInsert[] = metadata.map(item => ({
+        const metadataRecords = metadata.map(item => ({
           task_id: taskId,
           title: item.title,
           value: item.value,
           created_at: now,
           updated_at: now,
-          created_by: userId
+          created_by: user?.id
         }));
         
         const { error: metadataError } = await supabase
@@ -236,13 +215,6 @@ export function AddTaskDrawer({
 
     try {
       const supabase = getSupabaseClient();
-      const userId = user?.id;
-      
-      if (!userId) {
-        setLabelError('User not authenticated');
-        setSavingLabel(false);
-        return;
-      }
       
       // First check if the label already exists
       const { data: existingLabels, error: searchError } = await supabase
@@ -276,16 +248,12 @@ export function AddTaskDrawer({
       }
       
       // If label doesn't exist, create it
-      const labelInsert: LabelInsert = { 
-        name: labelName.trim(), 
-        color: labelColor,
-        project_id: defaultProjectId,
-        created_by: userId
-      };
-      
       const { data: newLabel, error: labelError } = await supabase
         .from('labels')
-        .insert(labelInsert)
+        .insert({ 
+          name: labelName.trim(), 
+          color: labelColor 
+        })
         .select('*')
         .single();
       
