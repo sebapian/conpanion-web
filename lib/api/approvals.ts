@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from '@/utils/supabase/client';
 
 export interface CreateApprovalParams {
   entity_type: string;
@@ -8,15 +8,17 @@ export interface CreateApprovalParams {
 
 export async function createApproval(params: CreateApprovalParams) {
   const supabase = createClient();
-  
+
   // Get the current session to access the auth token
-  const { data: { session } } = await supabase.auth.getSession();
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (!session) {
-    throw new Error("No active session");
+    throw new Error('No active session');
   }
 
-  console.log("Current user ID:", session.user.id);
+  console.log('Current user ID:', session.user.id);
 
   // First, create the approval
   const { data: approval, error: approvalError } = await supabase
@@ -30,14 +32,14 @@ export async function createApproval(params: CreateApprovalParams) {
     .single();
 
   if (approvalError) {
-    console.error("Error creating approval:", approvalError);
+    console.error('Error creating approval:', approvalError);
     throw approvalError;
   }
 
   // Then, create the approval_approvers entries
-  const approvalApprovers = params.approvers_id.map(approver_id => ({
+  const approvalApprovers = params.approvers_id.map((approver_id) => ({
     approval_id: approval.id,
-    approver_id: approver_id
+    approver_id: approver_id,
   }));
 
   const { error: approversError } = await supabase
@@ -45,7 +47,7 @@ export async function createApproval(params: CreateApprovalParams) {
     .insert(approvalApprovers);
 
   if (approversError) {
-    console.error("Error creating approval approvers:", approversError);
+    console.error('Error creating approval approvers:', approversError);
     throw approversError;
   }
 
@@ -54,12 +56,14 @@ export async function createApproval(params: CreateApprovalParams) {
 
 export async function approveApproval(approvalId: number) {
   const supabase = createClient();
-  
+
   // Get the current session to access the auth token
-  const { data: { session } } = await supabase.auth.getSession();
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (!session) {
-    throw new Error("No active session");
+    throw new Error('No active session');
   }
 
   // Verify that the current user is an approver
@@ -71,7 +75,7 @@ export async function approveApproval(approvalId: number) {
     .single();
 
   if (approverError || !approverCheck) {
-    throw new Error("You are not authorized to approve this request");
+    throw new Error('You are not authorized to approve this request');
   }
 
   // Update the approval status
@@ -91,12 +95,14 @@ export async function approveApproval(approvalId: number) {
 
 export async function declineApproval(approvalId: number) {
   const supabase = createClient();
-  
+
   // Get the current session to access the auth token
-  const { data: { session } } = await supabase.auth.getSession();
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (!session) {
-    throw new Error("No active session");
+    throw new Error('No active session');
   }
 
   // Verify that the current user is an approver
@@ -108,7 +114,7 @@ export async function declineApproval(approvalId: number) {
     .single();
 
   if (approverError || !approverCheck) {
-    throw new Error("You are not authorized to decline this request");
+    throw new Error('You are not authorized to decline this request');
   }
 
   // Update the approval status
@@ -128,12 +134,14 @@ export async function declineApproval(approvalId: number) {
 
 export async function submitApproval(approvalId: number) {
   const supabase = createClient();
-  
+
   // Get the current session to access the auth token
-  const { data: { session } } = await supabase.auth.getSession();
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (!session) {
-    throw new Error("No active session");
+    throw new Error('No active session');
   }
 
   // Verify that the current user is the requester
@@ -144,11 +152,11 @@ export async function submitApproval(approvalId: number) {
     .single();
 
   if (approvalError || !approvalCheck) {
-    throw new Error("Approval not found");
+    throw new Error('Approval not found');
   }
 
   if (approvalCheck.requester_id !== session.user.id) {
-    throw new Error("You are not authorized to submit this request");
+    throw new Error('You are not authorized to submit this request');
   }
 
   // Update the approval status
@@ -168,12 +176,14 @@ export async function submitApproval(approvalId: number) {
 
 export async function updateApprovers(approvalId: number, approvers_id: string[]) {
   const supabase = createClient();
-  
+
   // Get the current session to access the auth token
-  const { data: { session } } = await supabase.auth.getSession();
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (!session) {
-    throw new Error("No active session");
+    throw new Error('No active session');
   }
 
   // Get current approvers for this approval
@@ -186,13 +196,13 @@ export async function updateApprovers(approvalId: number, approvers_id: string[]
     throw fetchError;
   }
 
-  const currentApproverIds = currentApprovers?.map(a => a.approver_id) || [];
+  const currentApproverIds = currentApprovers?.map((a) => a.approver_id) || [];
 
   // Find approvers to remove (in current but not in new list)
-  const approversToRemove = currentApproverIds.filter(id => !approvers_id.includes(id));
+  const approversToRemove = currentApproverIds.filter((id) => !approvers_id.includes(id));
 
   // Find approvers to add (in new list but not in current)
-  const approversToAdd = approvers_id.filter(id => !currentApproverIds.includes(id));
+  const approversToAdd = approvers_id.filter((id) => !currentApproverIds.includes(id));
 
   // Remove approvers that are no longer needed
   if (approversToRemove.length > 0) {
@@ -209,14 +219,12 @@ export async function updateApprovers(approvalId: number, approvers_id: string[]
 
   // Add new approvers
   if (approversToAdd.length > 0) {
-    const newApprovers = approversToAdd.map(approver_id => ({
+    const newApprovers = approversToAdd.map((approver_id) => ({
       approval_id: approvalId,
-      approver_id: approver_id
+      approver_id: approver_id,
     }));
 
-    const { error: insertError } = await supabase
-      .from('approval_approvers')
-      .insert(newApprovers);
+    const { error: insertError } = await supabase.from('approval_approvers').insert(newApprovers);
 
     if (insertError) {
       throw insertError;
@@ -234,5 +242,4 @@ export async function updateApprovers(approvalId: number, approvers_id: string[]
   }
 
   return updatedApprovers;
-} 
-
+}

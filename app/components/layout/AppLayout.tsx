@@ -7,10 +7,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <TopBar />
       <main className="pl-16 pt-14">
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="p-6">{children}</div>
       </main>
     </div>
   );
-} 
+}

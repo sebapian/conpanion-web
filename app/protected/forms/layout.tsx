@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, Search } from 'lucide-react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -18,13 +18,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { CreateFormDialog } from "@/components/forms/create-form-dialog";
-import { getForms } from "@/lib/api/forms";
-import { Form } from "@/lib/types/form";
-import { format } from "date-fns";
-import { useRouter, usePathname } from "next/navigation";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { CreateFormDialog } from '@/components/forms/create-form-dialog';
+import { getForms } from '@/lib/api/forms';
+import { Form } from '@/lib/types/form';
+import { format } from 'date-fns';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function FormsLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -32,9 +32,9 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [forms, setForms] = useState<Form[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
       const data = await getForms();
       setForms(data);
     } catch (error) {
-      console.error("Error fetching forms:", error);
+      console.error('Error fetching forms:', error);
     } finally {
       setIsLoading(false);
     }
@@ -71,16 +71,17 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
   const filteredForms = forms.filter((form) => {
     // Apply search filter
     const matchesSearch = form.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     // Apply type filter (if implemented)
-    const matchesType = typeFilter === "all" || true; // Placeholder for type filtering
-    
+    const matchesType = typeFilter === 'all' || true; // Placeholder for type filtering
+
     // Apply status filter
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "draft" && (!form.assigned_to || form.assigned_to.length === 0)) ||
-      (statusFilter === "in-progress" && form.assigned_to && form.assigned_to.length > 0) ||
-      (statusFilter === "completed" && form.is_synced);
-    
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'draft' && (!form.assigned_to || form.assigned_to.length === 0)) ||
+      (statusFilter === 'in-progress' && form.assigned_to && form.assigned_to.length > 0) ||
+      (statusFilter === 'completed' && form.is_synced);
+
     return matchesSearch && matchesType && matchesStatus;
   });
 
@@ -108,10 +109,10 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
     <div className="relative flex h-[calc(100vh-3.5rem)]">
       <div className="flex-1 overflow-auto">
         <div className="space-y-6 p-6">
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Forms</h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="mt-1 text-muted-foreground">
                 Manage and track all your construction forms
               </p>
             </div>
@@ -121,9 +122,9 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
             </Button>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="relative flex-1 min-w-[300px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative min-w-[300px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
               <Input
                 placeholder="Search forms..."
                 className="pl-10"
@@ -156,7 +157,7 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
             </Select>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -170,20 +171,20 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={5} className="py-8 text-center">
                       Loading forms...
                     </TableCell>
                   </TableRow>
                 ) : filteredForms.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={5} className="py-8 text-center">
                       No forms found. Create your first form to get started.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredForms.map((form) => (
-                    <TableRow 
-                      key={form.id} 
+                    <TableRow
+                      key={form.id}
                       className={`cursor-pointer hover:bg-muted/50 ${form.id?.toString() === selectedFormId ? 'bg-muted' : ''}`}
                       onClick={() => handleFormClick(form.id!)}
                     >
@@ -200,7 +201,7 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
                           : 'Unassigned'}
                       </TableCell>
                       <TableCell>
-                        {form.updated_at 
+                        {form.updated_at
                           ? format(new Date(form.updated_at), 'MMM d, yyyy')
                           : 'Never'}
                       </TableCell>
@@ -222,4 +223,4 @@ export default function FormsLayout({ children }: { children: React.ReactNode })
       {selectedFormId && children}
     </div>
   );
-} 
+}

@@ -20,4 +20,4 @@ export interface SortableQuestionCardProps {
   onDelete: (id: string) => void;
   isFirst: boolean;
   isEditing: boolean;
-} 
+}

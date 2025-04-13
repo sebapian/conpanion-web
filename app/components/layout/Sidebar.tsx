@@ -21,34 +21,36 @@ export default function Sidebar() {
   }, [isExpanded]);
 
   return (
-    <aside 
-      className={`w-16 bg-background/80 dark:bg-background/95 h-screen flex flex-col py-4 fixed left-0 top-0 z-30 transition-all duration-300 overflow-hidden border-r ${
+    <aside
+      className={`fixed left-0 top-0 z-30 flex h-screen w-16 flex-col overflow-hidden border-r bg-background/80 py-4 transition-all duration-300 dark:bg-background/95 ${
         isExpanded ? 'w-48' : 'w-16'
       }`}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
-      <div className="flex flex-col space-y-2 flex-1">
+      <div className="flex flex-1 flex-col space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          
+
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`relative flex items-center mx-2 py-2 rounded-lg ${
-                isActive 
-                  ? 'bg-primary text-primary-foreground' 
+              className={`relative mx-2 flex items-center rounded-lg py-2 ${
+                isActive
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               }`}
             >
-              <div className="w-12 flex items-center justify-center">
-                <Icon className="w-5 h-5" />
+              <div className="flex w-12 items-center justify-center">
+                <Icon className="h-5 w-5" />
               </div>
-              <span className={`absolute left-12 text-sm whitespace-nowrap transition-transform duration-300 ${
-                isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
-              }`}>
+              <span
+                className={`absolute left-12 whitespace-nowrap text-sm transition-transform duration-300 ${
+                  isExpanded ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
+                }`}
+              >
                 {item.name}
               </span>
             </Link>
@@ -57,17 +59,19 @@ export default function Sidebar() {
       </div>
       <Link
         href="/protected/settings"
-        className="relative flex items-center mx-2 py-2 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        className="relative mx-2 flex items-center rounded-lg py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
       >
-        <div className="w-12 flex items-center justify-center">
-          <Settings className="w-5 h-5" />
+        <div className="flex w-12 items-center justify-center">
+          <Settings className="h-5 w-5" />
         </div>
-        <span className={`absolute left-12 text-sm whitespace-nowrap transition-transform duration-300 ${
-          isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
-        }`}>
+        <span
+          className={`absolute left-12 whitespace-nowrap text-sm transition-transform duration-300 ${
+            isExpanded ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
+          }`}
+        >
           Settings
         </span>
       </Link>
     </aside>
   );
-} 
+}
