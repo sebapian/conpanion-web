@@ -12,7 +12,6 @@ export type TaskWithRelations = {
   priority_id: number;
   project_id: number;
   due_date: string | null;
-  parent_task_id: number | null;
   
   // Relations
   priorities: {
