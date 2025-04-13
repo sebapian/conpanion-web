@@ -27,6 +27,19 @@ export function useAuth() {
           return
         }
 
+        // use this for testing only
+        if (!session?.user?.user_metadata?.avatar_url) {
+          const avatars = ['https://images.unsplash.com/photo-1492633423870-43d1cd2775eb?&w=128&h=128&dpr=2&q=80', 'https://github.com/shadcn.png', 'https://images.unsplash.com/photo-1511485977113-f34c92461ad9?ixlib=rb-1.2.1&w=128&h=128&dpr=2&q=80']
+          const avatarUrl = avatars[Math.floor(Math.random() * avatars.length)]
+
+          await supabase.auth.updateUser({
+            data: {
+              name: session?.user?.email, // use email for now as we dont ask for first and last names yet
+              avatar_url: avatarUrl,
+            }
+          })
+        }
+
         // const { data: projects } = await supabase.from('projects').select('id').eq('owner_id', session?.user?.id)
         const { data: projects } = await supabase.from('projects').select('id').eq('id', 1) // use this for testing
         if (!projects?.length) {
