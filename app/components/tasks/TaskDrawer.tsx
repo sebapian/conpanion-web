@@ -16,10 +16,6 @@ type Status = Database['public']['Tables']['statuses']['Row']
 type Priority = Database['public']['Tables']['priorities']['Row']
 type Label = Database['public']['Tables']['labels']['Row']
 
-// Define the label insert type explicitly
-type LabelInsert = Database['public']['Tables']['labels']['Insert']
-type EntityLabelInsert = Database['public']['Tables']['entity_labels']['Insert']
-
 interface TaskDrawerProps {
   isOpen: boolean
   onClose: () => void
@@ -269,16 +265,6 @@ export function TaskDrawer({
     try {
       const supabase = getSupabaseClient();
       
-      // Default project ID 
-      const defaultProjectId = 1;
-      const userId = user?.id;
-      
-      if (!userId) {
-        setLabelError('User not authenticated');
-        setSavingLabel(false);
-        return;
-      }
-      
       // First check if the label already exists
       const { data: existingLabels, error: searchError } = await supabase
         .from('labels')
@@ -298,16 +284,12 @@ export function TaskDrawer({
       // If label doesn't exist, try to create it
       if (!existingLabels || existingLabels.length === 0) {
         try {
-          const labelInsert: LabelInsert = {
-            name: labelName.trim(), 
-            color: labelColor,
-            project_id: defaultProjectId,
-            created_by: userId
-          };
-          
           const { data: labelData, error: labelError } = await supabase
             .from('labels')
-            .insert(labelInsert)
+            .insert({ 
+              name: labelName.trim(), 
+              color: labelColor 
+            })
             .select('id')
             .single();
           
@@ -337,22 +319,16 @@ export function TaskDrawer({
         labelId = existingLabels[0].id;
       }
       
-      // Then associate the label with the task using entity_labels
-      const now = new Date().toISOString();
-      const entityLabelInsert: EntityLabelInsert = {
-        entity_type: 'tasks',
-        entity_id: task.id, 
-        label_id: labelId,
-        created_at: now,
-        created_by: userId
-      };
+      // Then associate the label with the task
+      const { error: taskLabelError } = await supabase
+        .from('task_labels')
+        .insert({ 
+          task_id: task.id, 
+          label_id: labelId 
+        });
       
-      const { error: entityLabelError } = await supabase
-        .from('entity_labels')
-        .insert(entityLabelInsert);
-      
-      if (entityLabelError) {
-        console.error('Error associating label with task:', entityLabelError);
+      if (taskLabelError) {
+        console.error('Error associating label with task:', taskLabelError);
         setLabelError('Failed to associate label with task');
         setSavingLabel(false);
         return;
