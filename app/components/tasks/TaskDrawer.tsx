@@ -10,6 +10,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { useTaskComments, TaskComment, useTaskMetadata, TaskMetadata } from '../../protected/tasks/hooks'
 import { DatePicker } from '@/components/ui/date-picker'
+import { TaskWithRelations } from '@/app/protected/tasks/models'
 
 type Task = Database['public']['Tables']['tasks']['Row']
 type Status = Database['public']['Tables']['statuses']['Row']
@@ -19,7 +20,7 @@ type Label = Database['public']['Tables']['labels']['Row']
 interface TaskDrawerProps {
   isOpen: boolean
   onClose: () => void
-  task: Task
+  task: TaskWithRelations
   status: Status
   priority: Priority
   labels: Label[]
@@ -288,7 +289,9 @@ export function TaskDrawer({
             .from('labels')
             .insert({ 
               name: labelName.trim(), 
-              color: labelColor 
+              color: labelColor,
+              created_by: user?.id ?? '',
+              project_id: user?.activeProjectId ?? 0
             })
             .select('id')
             .single();
@@ -321,10 +324,12 @@ export function TaskDrawer({
       
       // Then associate the label with the task
       const { error: taskLabelError } = await supabase
-        .from('task_labels')
+        .from('entity_labels')
         .insert({ 
-          task_id: task.id, 
-          label_id: labelId 
+          entity_type: 'tasks',
+          entity_id: task.id,
+          label_id: labelId,
+          created_by: user?.id ?? ''
         });
       
       if (taskLabelError) {
