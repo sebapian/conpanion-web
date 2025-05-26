@@ -185,92 +185,6 @@ export type Database = {
         }
         Relationships: []
       }
-      form_entries: {
-        Row: {
-          created_at: string
-          deleted_at: string | null
-          form_id: number
-          id: number
-          is_synced: boolean
-          last_synced_at: string | null
-          name: string | null
-          submitted_by_user_id: string
-          team_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          deleted_at?: string | null
-          form_id: number
-          id?: never
-          is_synced?: boolean
-          last_synced_at?: string | null
-          name?: string | null
-          submitted_by_user_id: string
-          team_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          deleted_at?: string | null
-          form_id?: number
-          id?: never
-          is_synced?: boolean
-          last_synced_at?: string | null
-          name?: string | null
-          submitted_by_user_id?: string
-          team_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "form_entries_form_id_fkey"
-            columns: ["form_id"]
-            isOneToOne: false
-            referencedRelation: "forms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      form_entry_answers: {
-        Row: {
-          answer_value: Json | null
-          created_at: string
-          entry_id: number
-          id: number
-          item_id: number
-        }
-        Insert: {
-          answer_value?: Json | null
-          created_at?: string
-          entry_id: number
-          id?: never
-          item_id: number
-        }
-        Update: {
-          answer_value?: Json | null
-          created_at?: string
-          entry_id?: number
-          id?: never
-          item_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "form_entry_answers_entry_id_fkey"
-            columns: ["entry_id"]
-            isOneToOne: false
-            referencedRelation: "form_entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "form_entry_answers_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "form_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       form_items: {
         Row: {
           display_order: number
@@ -397,6 +311,113 @@ export type Database = {
           },
         ]
       }
+      organization_users: {
+        Row: {
+          display_name: string | null
+          id: number
+          invited_at: string | null
+          invited_by: string | null
+          joined_at: string
+          last_accessed_at: string | null
+          notifications_enabled: boolean | null
+          organization_id: number
+          role: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          display_name?: string | null
+          id?: number
+          invited_at?: string | null
+          invited_by?: string | null
+          joined_at?: string
+          last_accessed_at?: string | null
+          notifications_enabled?: boolean | null
+          organization_id: number
+          role: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          display_name?: string | null
+          id?: number
+          invited_at?: string | null
+          invited_by?: string | null
+          joined_at?: string
+          last_accessed_at?: string | null
+          notifications_enabled?: boolean | null
+          organization_id?: number
+          role?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          billing_email: string | null
+          created_at: string
+          created_by: string
+          data_region: string | null
+          description: string | null
+          domain: string | null
+          id: number
+          is_active: boolean
+          max_members: number | null
+          name: string
+          plan_type: string
+          retention_days: number | null
+          slug: string
+          subdomain: string | null
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_email?: string | null
+          created_at?: string
+          created_by: string
+          data_region?: string | null
+          description?: string | null
+          domain?: string | null
+          id?: number
+          is_active?: boolean
+          max_members?: number | null
+          name: string
+          plan_type?: string
+          retention_days?: number | null
+          slug: string
+          subdomain?: string | null
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_email?: string | null
+          created_at?: string
+          created_by?: string
+          data_region?: string | null
+          description?: string | null
+          domain?: string | null
+          id?: number
+          is_active?: boolean
+          max_members?: number | null
+          name?: string
+          plan_type?: string
+          retention_days?: number | null
+          slug?: string
+          subdomain?: string | null
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       priorities: {
         Row: {
           color: string | null
@@ -448,6 +469,7 @@ export type Database = {
           id: number
           is_archived: boolean
           name: string
+          organization_id: number | null
           owner_id: string
           updated_at: string
         }
@@ -460,6 +482,7 @@ export type Database = {
           id?: number
           is_archived?: boolean
           name: string
+          organization_id?: number | null
           owner_id: string
           updated_at?: string
         }
@@ -472,10 +495,19 @@ export type Database = {
           id?: number
           is_archived?: boolean
           name?: string
+          organization_id?: number | null
           owner_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects_users: {
         Row: {
@@ -700,11 +732,161 @@ export type Database = {
           },
         ]
       }
+      user_organization_sessions: {
+        Row: {
+          actions_performed: number | null
+          id: number
+          ip_address: unknown | null
+          last_activity_at: string | null
+          organization_id: number
+          session_end: string | null
+          session_start: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          actions_performed?: number | null
+          id?: number
+          ip_address?: unknown | null
+          last_activity_at?: string | null
+          organization_id: number
+          session_end?: string | null
+          session_start?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          actions_performed?: number | null
+          id?: number
+          ip_address?: unknown | null
+          last_activity_at?: string | null
+          organization_id?: number
+          session_end?: string | null
+          session_start?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_organization_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          current_organization_id: number | null
+          default_organization_id: number | null
+          failed_login_attempts: number | null
+          global_avatar_url: string | null
+          global_display_name: string | null
+          id: string
+          last_organization_switch_at: string | null
+          locked_until: string | null
+          preferred_language: string | null
+          preferred_timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_organization_id?: number | null
+          default_organization_id?: number | null
+          failed_login_attempts?: number | null
+          global_avatar_url?: string | null
+          global_display_name?: string | null
+          id: string
+          last_organization_switch_at?: string | null
+          locked_until?: string | null
+          preferred_language?: string | null
+          preferred_timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_organization_id?: number | null
+          default_organization_id?: number | null
+          failed_login_attempts?: number | null
+          global_avatar_url?: string | null
+          global_display_name?: string | null
+          id?: string
+          last_organization_switch_at?: string | null
+          locked_until?: string | null
+          preferred_language?: string | null
+          preferred_timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_current_organization_id_fkey"
+            columns: ["current_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_default_organization_id_fkey"
+            columns: ["default_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_organization: {
+        Args: {
+          org_name: string
+          org_description?: string
+        }
+        Returns: number
+      }
+      create_organization_for_existing_user: {
+        Args: {
+          target_user_id: string
+        }
+        Returns: number
+      }
+      ensure_user_has_organization: {
+        Args: {
+          target_user_id: string
+        }
+        Returns: number
+      }
+      generate_organization_slug: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_organization_id: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_or_create_default_organization: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_organization_members: {
+        Args: {
+          org_id: number
+        }
+        Returns: {
+          membership_id: number
+          user_id: string
+          role: string
+          status: string
+          joined_at: string
+          invited_by: string
+          display_name: string
+          user_email: string
+        }[]
+      }
       get_user_details: {
         Args: {
           user_ids: string[]
@@ -713,6 +895,56 @@ export type Database = {
           id: string
           raw_user_meta_data: Json
         }[]
+      }
+      get_user_organizations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          organization_id: number
+          organization_name: string
+          organization_slug: string
+          user_role: string
+          user_status: string
+          joined_at: string
+          last_accessed_at: string
+          is_current: boolean
+        }[]
+      }
+      invite_user_to_organization: {
+        Args: {
+          org_id: number
+          user_email: string
+          user_role?: string
+        }
+        Returns: boolean
+      }
+      migrate_projects_to_organizations: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      migrate_users_to_default_organization: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          profile_created: boolean
+          membership_created: boolean
+        }[]
+      }
+      rerun_data_migration: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      switch_organization_context: {
+        Args: {
+          new_org_id: number
+        }
+        Returns: boolean
+      }
+      user_has_org_permission: {
+        Args: {
+          org_id: number
+          required_roles?: string[]
+        }
+        Returns: boolean
       }
     }
     Enums: {
