@@ -50,7 +50,7 @@ export async function getForms(): Promise<Form[]> {
   }
 
   // Then, fetch assignees for these forms
-  const formIds = forms.map(form => form.id);
+  const formIds = forms.map((form) => form.id);
   const { data: assignees, error: assigneesError } = await supabase
     .from('entity_assignees')
     .select('entity_id, user_id')
@@ -67,11 +67,14 @@ export async function getForms(): Promise<Form[]> {
   }
 
   // Get unique user IDs from assignees for user info
-  const getUserIds = (formId: number) => Array.from(
-    new Set((assignees || []).filter((a: { entity_id: number }) => a.entity_id === formId).map((a: { user_id: string }) => a.user_id)),
-  );
-
-  
+  const getUserIds = (formId: number) =>
+    Array.from(
+      new Set(
+        (assignees || [])
+          .filter((a: { entity_id: number }) => a.entity_id === formId)
+          .map((a: { user_id: string }) => a.user_id),
+      ),
+    );
 
   // Transform the data to match the expected format
   const transformedForms = (forms as DbFormResponse[]).map(async (form) => {
@@ -111,7 +114,7 @@ export async function getForms(): Promise<Form[]> {
       deleted_at: form.deleted_at || undefined,
       last_synced_at: form.last_synced_at || undefined,
       assignees: usersData as AssigneeResponse[],
-    }
+    };
   });
 
   return Promise.all(transformedForms);
@@ -221,10 +224,7 @@ export async function updateForm(id: number, request: UpdateFormRequest): Promis
   // If items are provided, update them
   if (request.items && request.items.length > 0) {
     // Delete existing items
-    const { error: deleteError } = await supabase
-      .from('form_items')
-      .delete()
-      .eq('form_id', id);
+    const { error: deleteError } = await supabase.from('form_items').delete().eq('form_id', id);
 
     if (deleteError) {
       console.error('Error deleting form items:', deleteError);
@@ -282,4 +282,4 @@ export async function deleteForm(id: number): Promise<void> {
     console.error('Error deleting form:', error);
     throw error;
   }
-} 
+}
