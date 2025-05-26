@@ -28,7 +28,7 @@ begin
         slug_candidate := translate(slug_candidate, '+/=', '');
         
         -- Take first 8 characters
-        slug_candidate := substring(slug_candidate from 1 for 8);
+        slug_candidate := substring(slug_candidate from 1 for 16);
         
         -- Ensure it starts with a letter (good practice for URLs)
         if substring(slug_candidate from 1 for 1) ~ '[0-9]' then
