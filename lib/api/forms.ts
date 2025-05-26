@@ -30,6 +30,8 @@ interface AssigneeResponse {
     name: string;
     avatar_url?: string;
   };
+  global_avatar_url: string;
+  global_display_name: string;
 }
 
 export async function getForms(): Promise<Form[]> {
@@ -105,6 +107,8 @@ export async function getForms(): Promise<Form[]> {
         usersData = userIds.map((id) => ({
           id,
           raw_user_meta_data: { name: 'User ' + id.substring(0, 6) },
+          global_avatar_url: '',
+          global_display_name: 'User ' + id.substring(0, 6),
         }));
       }
     }
