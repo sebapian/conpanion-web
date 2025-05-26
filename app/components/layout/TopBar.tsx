@@ -1,10 +1,16 @@
 'use client';
 
 import { Search, Bell, User, Menu } from 'lucide-react';
+import Link from 'next/link';
 import { signOutAction } from '@/app/actions';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
 import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
+import { ProjectSwitcher } from '@/components/ProjectSwitcher';
+import { Avatar, AvatarImage, AvatarFallback } from '@/app/components/ui/avatar';
+import { useAuth } from '@/hooks/useAuth';
+import { useEffect, useState } from 'react';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { RefObject } from 'react';
 
 interface TopBarProps {
@@ -14,8 +20,42 @@ interface TopBarProps {
 }
 
 export default function TopBar({ isSidebarOpen, onSidebarToggle, toggleButtonRef }: TopBarProps) {
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<{
+    global_avatar_url: string | null;
+    global_display_name: string | null;
+  } | null>(null);
+  const supabase = getSupabaseClient();
+
+  // Load user profile for avatar
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data: profileData, error } = await supabase
+          .from('user_profiles')
+          .select('global_avatar_url, global_display_name')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && profileData) {
+          setUserProfile(profileData);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, [user, supabase]);
+
+  // Use database as source of truth for avatar and display name
+  const avatarUrl = userProfile?.global_avatar_url;
+  const displayName = userProfile?.global_display_name || user?.email;
+
   return (
-    <header className="fixed left-0 right-0 top-0 z-20 flex h-14 items-center justify-between border-b bg-background/80 px-4 dark:bg-background/95 lg:left-[var(--sidebar-width)]">
+    <header className="fixed left-0 right-0 top-0 z-20 flex h-14 w-max items-center justify-between border-b bg-background/80 px-4 dark:bg-background/95 lg:left-[var(--sidebar-width)] lg:w-[calc(100%-var(--sidebar-width))]">
       <div className="flex items-center gap-4">
         <Button
           ref={toggleButtonRef}
@@ -28,9 +68,10 @@ export default function TopBar({ isSidebarOpen, onSidebarToggle, toggleButtonRef
           <span className="sr-only">Toggle menu</span>
         </Button>
 
-        {/* Organization Switcher */}
-        <div className="flex items-center">
-          <OrganizationSwitcher className="w-48 lg:w-64" />
+        {/* Organization and Project Switchers */}
+        <div className="flex items-center gap-3">
+          <OrganizationSwitcher className="w-max max-w-44 lg:w-56" />
+          <ProjectSwitcher className="w-max max-w-44 lg:w-56" />
         </div>
 
         <div className="relative hidden max-w-md flex-1 md:block">
@@ -50,15 +91,27 @@ export default function TopBar({ isSidebarOpen, onSidebarToggle, toggleButtonRef
         </button>
         <div className="group relative">
           <button className="flex items-center space-x-1 rounded-lg p-1 hover:bg-muted/50">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <User className="h-5 w-5" />
-            </div>
+            <Avatar className="h-8 w-8">
+              {avatarUrl && (
+                <AvatarImage
+                  src={avatarUrl}
+                  alt={displayName || 'User avatar'}
+                  className="object-cover"
+                />
+              )}
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                <User className="h-5 w-5" />
+              </AvatarFallback>
+            </Avatar>
           </button>
           <div className="invisible absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border bg-background/95 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-200 group-hover:visible group-hover:opacity-100">
             <div className="p-2">
-              <button className="w-full rounded px-3 py-2 text-left text-sm text-foreground hover:bg-muted/50">
+              <Link
+                href="/protected/settings/profile"
+                className="block w-full rounded px-3 py-2 text-left text-sm text-foreground hover:bg-muted/50"
+              >
                 Profile Settings
-              </button>
+              </Link>
               <form action={signOutAction}>
                 <button
                   type="submit"

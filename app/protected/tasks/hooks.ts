@@ -19,12 +19,12 @@ export const useTasks = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const projectId = user?.activeOrganizationId;
 
   const getTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
     const supabase = getSupabaseClient();
+    const projectId = user?.activeProjectId;
 
     try {
       // First fetch tasks with direct relationships
@@ -112,7 +112,7 @@ export const useTasks = () => {
       );
 
       // Fetch user details if we have any assignees
-      let usersData: Database['public']['Functions']['get_user_details']['Returns'] = [];
+      let usersData: any[] = [];
       if (userIds.length > 0) {
         try {
           const { data: users, error: usersError } = await supabase.rpc('get_user_details', {
@@ -124,12 +124,25 @@ export const useTasks = () => {
             console.error('Error fetching users:', usersError);
           }
 
-          // If the RPC function doesn't exist yet, create a fallback
+          // Map the updated function response to include user_profiles data
           usersData =
-            users ||
+            users?.map((user: any) => ({
+              id: user.id,
+              raw_user_meta_data: user.raw_user_meta_data || {
+                name: 'User ' + user.id.substring(0, 6),
+              },
+              user_profiles:
+                user.global_avatar_url || user.global_display_name
+                  ? {
+                      global_avatar_url: user.global_avatar_url,
+                      global_display_name: user.global_display_name,
+                    }
+                  : null,
+            })) ||
             userIds.map((id) => ({
               id,
               raw_user_meta_data: { name: 'User ' + id.substring(0, 6) },
+              user_profiles: null,
             }));
         } catch (err) {
           console.error('Exception fetching user details:', err);
@@ -137,6 +150,7 @@ export const useTasks = () => {
           usersData = userIds.map((id) => ({
             id,
             raw_user_meta_data: { name: 'User ' + id.substring(0, 6) },
+            user_profiles: null,
           }));
         }
       }
@@ -214,7 +228,7 @@ export const useTasks = () => {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [user]);
 
   useEffect(() => {
     getTasks();
@@ -228,12 +242,12 @@ export const useTaskStatuses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const projectId = user?.activeOrganizationId;
 
   const getStatuses = useCallback(async () => {
     setLoading(true);
     setError(null);
     const supabase = getSupabaseClient();
+    const projectId = user?.activeProjectId;
 
     try {
       let query = supabase.from('statuses').select('*').order('position');
@@ -259,7 +273,7 @@ export const useTaskStatuses = () => {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [user]);
 
   useEffect(() => {
     getStatuses();
@@ -275,12 +289,12 @@ export const useTaskPriorities = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const projectId = user?.activeOrganizationId;
 
   const getPriorities = useCallback(async () => {
     setLoading(true);
     setError(null);
     const supabase = getSupabaseClient();
+    const projectId = user?.activeProjectId;
 
     try {
       let query = supabase.from('priorities').select('*').order('position');
@@ -306,7 +320,7 @@ export const useTaskPriorities = () => {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [user]);
 
   useEffect(() => {
     getPriorities();
@@ -379,9 +393,9 @@ export const useTaskComments = (taskId: number) => {
       try {
         const supabase = getSupabaseClient();
 
-        // Get user details
-        const userName = user.user_metadata?.name || 'Anonymous User';
-        const userAvatar = user.user_metadata?.avatar_url;
+        const userName =
+          user.profile?.global_display_name || user.user_metadata?.name || 'Anonymous User';
+        const userAvatar = user.profile?.global_avatar_url || user.user_metadata?.avatar_url;
 
         // Add the comment
         const { error } = await supabase.from('task_comments').insert({

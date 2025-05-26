@@ -402,6 +402,19 @@ export class OrganizationAPI {
   }
 
   /**
+   * Get organization member count only
+   */
+  async getOrganizationMemberCount(orgId: number): Promise<number> {
+    const { count } = await this.supabase
+      .from('organization_users')
+      .select('*', { count: 'exact' })
+      .eq('organization_id', orgId)
+      .eq('status', 'active');
+
+    return count || 0;
+  }
+
+  /**
    * Get organization analytics/stats
    */
   async getOrganizationStats(orgId: number): Promise<{

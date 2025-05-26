@@ -15,6 +15,10 @@ export type TaskWithRelations = Database['public']['Tables']['tasks']['Row'] & {
         name: string;
         avatar_url?: string;
       };
+      user_profiles?: {
+        global_avatar_url: string | null;
+        global_display_name: string | null;
+      } | null;
     };
   }[];
 

@@ -484,32 +484,38 @@ export default function OrganizationMembersPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={`/protected/settings/organizations/${organization?.slug}`}>
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Settings
-            </Button>
-          </Link>
-          <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold">
-              <Users className="h-8 w-8" />
-              Members
-            </h1>
-            <p className="text-muted-foreground">Manage members for {organization?.name}</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <Link href={`/protected/settings/organizations/${organization?.slug}`}>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Back to Settings</span>
+                <span className="sm:hidden">Back</span>
+              </Button>
+            </Link>
+            <div className="min-w-0">
+              <h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl">
+                <Users className="h-6 w-6 flex-shrink-0 sm:h-8 sm:w-8" />
+                <span>Members</span>
+              </h1>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Manage members for {organization?.name}
+              </p>
+            </div>
           </div>
+          {canManageMembers && (
+            <div className="flex gap-2">
+              <Button onClick={() => setIsInviteDialogOpen(true)} className="w-full sm:w-auto">
+                <UserPlus className="mr-2 h-4 w-4" />
+                <span className="sm:hidden">Invite</span>
+                <span className="hidden sm:inline">Invite Member</span>
+              </Button>
+            </div>
+          )}
         </div>
-        {canManageMembers && (
-          <div className="flex gap-2">
-            <Button onClick={() => setIsInviteDialogOpen(true)}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Invite Member
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Debug Section */}
@@ -520,53 +526,93 @@ export default function OrganizationMembersPage() {
             <CardDescription>Debugging member loading issues</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                if (organization) {
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (organization) {
+                    try {
+                      const allMembers = await organizationAPI.getAllOrganizationMembers(
+                        organization.id,
+                      );
+                      console.log('All members (any status):', allMembers);
+                      alert(`Found ${allMembers.length} total members. Check console for details.`);
+                    } catch (error) {
+                      console.error('Debug error:', error);
+                      alert('Error getting all members: ' + error);
+                    }
+                  }
+                }}
+                className="min-w-0 flex-1 sm:flex-none"
+              >
+                <span className="truncate">Debug: Get All Members</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
                   try {
-                    const allMembers = await organizationAPI.getAllOrganizationMembers(
-                      organization.id,
-                    );
-                    console.log('All members (any status):', allMembers);
-                    alert(`Found ${allMembers.length} total members. Check console for details.`);
+                    const userInfo = await organizationAPI.getCurrentUserInfo();
+                    console.log('Current user info:', userInfo);
+                    alert(`Current user ID: ${userInfo.user?.id}. Check console for details.`);
                   } catch (error) {
                     console.error('Debug error:', error);
-                    alert('Error getting all members: ' + error);
                   }
-                }
-              }}
-            >
-              Debug: Get All Members (Any Status)
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                try {
-                  const userInfo = await organizationAPI.getCurrentUserInfo();
-                  console.log('Current user info:', userInfo);
-                  alert(`Current user ID: ${userInfo.user?.id}. Check console for details.`);
-                } catch (error) {
-                  console.error('Debug error:', error);
-                }
-              }}
-            >
-              Debug: Get Current User Info
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                if (organization) {
+                }}
+                className="min-w-0 flex-1 sm:flex-none"
+              >
+                <span className="truncate">Debug: Get User Info</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (organization) {
+                    try {
+                      const testMember = await organizationAPI.createTestMember(
+                        organization.id,
+                        `test-user-${Date.now()}`,
+                      );
+                      console.log('Created test member:', testMember);
+                      alert('Test member created! Refreshing...');
+
+                      // Reload members
+                      const orgMembers = await organizationAPI.getOrganizationMembers(
+                        organization.id,
+                      );
+                      setMembers(orgMembers);
+                    } catch (error: any) {
+                      console.error('Error creating test member:', error);
+                      alert('Error: ' + (error.message || error));
+                    }
+                  }
+                }}
+                className="min-w-0 flex-1 sm:flex-none"
+              >
+                <span className="truncate">Debug: Create Test</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (members.length === 0) {
+                    alert('No members to test removal with');
+                    return;
+                  }
+
+                  // Get the first member that's not the current user
+                  const testMember = members.find((m) => m.user_id !== userMembership?.user_id);
+                  if (!testMember) {
+                    alert('No other members to test removal with');
+                    return;
+                  }
+
                   try {
-                    const testMember = await organizationAPI.createTestMember(
-                      organization.id,
-                      `test-user-${Date.now()}`,
-                    );
-                    console.log('Created test member:', testMember);
-                    alert('Test member created! Refreshing...');
+                    console.log('Testing removal of member:', testMember);
+                    await organizationAPI.removeMember(testMember.id);
+                    alert(`Successfully removed member #${testMember.id}`);
 
                     // Reload members
                     const orgMembers = await organizationAPI.getOrganizationMembers(
@@ -574,47 +620,15 @@ export default function OrganizationMembersPage() {
                     );
                     setMembers(orgMembers);
                   } catch (error: any) {
-                    console.error('Error creating test member:', error);
+                    console.error('Error removing member:', error);
                     alert('Error: ' + (error.message || error));
                   }
-                }
-              }}
-            >
-              Debug: Create Test Member
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                if (members.length === 0) {
-                  alert('No members to test removal with');
-                  return;
-                }
-
-                // Get the first member that's not the current user
-                const testMember = members.find((m) => m.user_id !== userMembership?.user_id);
-                if (!testMember) {
-                  alert('No other members to test removal with');
-                  return;
-                }
-
-                try {
-                  console.log('Testing removal of member:', testMember);
-                  await organizationAPI.removeMember(testMember.id);
-                  alert(`Successfully removed member #${testMember.id}`);
-
-                  // Reload members
-                  const orgMembers = await organizationAPI.getOrganizationMembers(organization.id);
-                  setMembers(orgMembers);
-                } catch (error: any) {
-                  console.error('Error removing member:', error);
-                  alert('Error: ' + (error.message || error));
-                }
-              }}
-            >
-              Debug: Test Remove Member
-            </Button>
+                }}
+                className="min-w-0 flex-1 sm:flex-none"
+              >
+                <span className="truncate">Debug: Test Remove</span>
+              </Button>
+            </div>
             <div className="text-sm text-yellow-700">
               <p>Organization ID: {organization?.id}</p>
               <p>Your User ID: {userMembership?.user_id}</p>
@@ -639,29 +653,34 @@ export default function OrganizationMembersPage() {
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
+                  className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
                       <Mail className="h-5 w-5 text-primary" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 font-medium">
-                        {getMemberEmail(member)}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                        <span className="truncate font-medium">{getMemberEmail(member)}</span>
                         {member.user_id === userMembership?.user_id && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="w-fit text-xs">
                             You
                           </Badge>
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Joined {new Date(member.joined_at).toLocaleDateString()} • Membership #
-                        {member.id}
+                        <div className="block sm:hidden">
+                          Joined {new Date(member.joined_at).toLocaleDateString()}
+                        </div>
+                        <div className="hidden sm:block">
+                          Joined {new Date(member.joined_at).toLocaleDateString()} • Membership #
+                          {member.id}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-3 sm:justify-end">
                     <Badge
                       variant={getRoleBadgeVariant(member.role)}
                       className={getRoleColor(member.role)}
@@ -674,6 +693,7 @@ export default function OrganizationMembersPage() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
                             <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Member actions</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -738,7 +758,10 @@ export default function OrganizationMembersPage() {
                 This organization doesn't have any members yet.
               </p>
               {canManageMembers && (
-                <Button className="mt-4" onClick={() => setIsInviteDialogOpen(true)}>
+                <Button
+                  className="mt-4 w-full sm:w-auto"
+                  onClick={() => setIsInviteDialogOpen(true)}
+                >
                   <UserPlus className="mr-2 h-4 w-4" />
                   Invite First Member
                 </Button>

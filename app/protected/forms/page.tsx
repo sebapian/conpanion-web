@@ -256,12 +256,12 @@ function FormsPageContent({
 
           if (userData) {
             setAssignees(
-              userData.map((user) => {
+              userData.map((user: any) => {
                 const metadata = user.raw_user_meta_data as { name?: string; avatar_url?: string };
                 return {
                   id: user.id,
-                  name: metadata?.name || '',
-                  avatar_url: metadata?.avatar_url,
+                  name: user.global_display_name || metadata?.name || '',
+                  avatar_url: user.global_avatar_url || metadata?.avatar_url,
                 };
               }),
             );

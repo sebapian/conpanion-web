@@ -511,8 +511,12 @@ export default function TasksPage() {
                   assignees={
                     activeTask.entity_assignees?.map((ea) => ({
                       id: ea.user_id,
-                      name: ea.users.raw_user_meta_data.name,
-                      avatar_url: ea.users.raw_user_meta_data.avatar_url,
+                      name:
+                        ea.users.user_profiles?.global_display_name ||
+                        ea.users.raw_user_meta_data.name,
+                      avatar_url:
+                        ea.users.user_profiles?.global_avatar_url ||
+                        ea.users.raw_user_meta_data.avatar_url,
                     })) || []
                   }
                   allStatuses={statuses}
@@ -597,8 +601,12 @@ function TaskColumnsStatic({
                 assignees={
                   task.entity_assignees?.map((ea) => ({
                     id: ea.user_id,
-                    name: ea.users.raw_user_meta_data.name,
-                    avatar_url: ea.users.raw_user_meta_data.avatar_url,
+                    name:
+                      ea.users.user_profiles?.global_display_name ||
+                      ea.users.raw_user_meta_data.name,
+                    avatar_url:
+                      ea.users.user_profiles?.global_avatar_url ||
+                      ea.users.raw_user_meta_data.avatar_url,
                   })) || []
                 }
                 allStatuses={statuses}
@@ -673,8 +681,9 @@ function SortableTaskCard({
         assignees={
           task.entity_assignees?.map((ea) => ({
             id: ea.user_id,
-            name: ea.users.raw_user_meta_data.name,
-            avatar_url: ea.users.raw_user_meta_data.avatar_url,
+            name: ea.users.user_profiles?.global_display_name || ea.users.raw_user_meta_data.name,
+            avatar_url:
+              ea.users.user_profiles?.global_avatar_url || ea.users.raw_user_meta_data.avatar_url,
           })) || []
         }
         allStatuses={allStatuses}

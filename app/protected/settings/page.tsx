@@ -1,7 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, User, Bell, Shield, Palette, Database, ArrowRight } from 'lucide-react';
+import {
+  Building2,
+  User,
+  Bell,
+  Shield,
+  Palette,
+  Database,
+  FolderOpen,
+  ArrowRight,
+} from 'lucide-react';
 
 export default function SettingsPage() {
   const settingsCategories = [
@@ -14,13 +23,20 @@ export default function SettingsPage() {
       bgColor: 'bg-blue-50',
     },
     {
+      title: 'Projects',
+      description: 'Manage your projects, settings, and project members',
+      icon: FolderOpen,
+      href: '/protected/settings/projects',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+    },
+    {
       title: 'Profile',
       description: 'Update your personal information and account preferences',
       icon: User,
       href: '/protected/settings/profile',
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      comingSoon: true,
     },
     {
       title: 'Notifications',

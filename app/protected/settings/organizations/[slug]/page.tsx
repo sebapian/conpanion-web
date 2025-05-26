@@ -200,36 +200,49 @@ export default function OrganizationSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/protected/settings/organizations">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-          </Link>
-          <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold">
-              <Building2 className="h-8 w-8" />
-              {organization.name}
-              {formData.name !== organization.name && (
-                <span className="text-sm font-normal text-muted-foreground">(unsaved changes)</span>
-              )}
-            </h1>
-            <p className="text-muted-foreground">Organization settings and configuration</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <Link href="/protected/settings/organizations">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+            </Link>
+            <div className="min-w-0">
+              <h1 className="flex flex-col gap-2 text-2xl font-bold sm:flex-row sm:items-center sm:gap-2 sm:text-3xl">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-6 w-6 flex-shrink-0 sm:h-8 sm:w-8" />
+                  <span className="truncate">{organization.name}</span>
+                </div>
+                {formData.name !== organization.name && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    (unsaved changes)
+                  </span>
+                )}
+              </h1>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Organization settings and configuration
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {current?.id !== organization.id && (
-            <Button onClick={handleSwitchToOrg} variant="outline">
-              Switch to This Org
-            </Button>
-          )}
-          <Badge variant={current?.id === organization.id ? 'default' : 'outline'}>
-            {current?.id === organization.id ? 'Current' : membership.role}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {current?.id !== organization.id && (
+              <Button
+                onClick={handleSwitchToOrg}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                Switch to This Org
+              </Button>
+            )}
+            <Badge variant={current?.id === organization.id ? 'default' : 'outline'}>
+              {current?.id === organization.id ? 'Current' : membership.role}
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -242,21 +255,21 @@ export default function OrganizationSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="text-center">
-              <div className="text-2xl font-bold">{organization.slug}</div>
+              <div className="text-xl font-bold sm:text-2xl">{organization.slug}</div>
               <div className="text-xs text-muted-foreground">Slug</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">{membership.role}</div>
+              <div className="text-xl font-bold sm:text-2xl">{membership.role}</div>
               <div className="text-xs text-muted-foreground">Your Role</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">{memberCount}</div>
+              <div className="text-xl font-bold sm:text-2xl">{memberCount}</div>
               <div className="text-xs text-muted-foreground">Members</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">
+              <div className="text-xl font-bold sm:text-2xl">
                 {organization.is_active ? 'Active' : 'Inactive'}
               </div>
               <div className="text-xs text-muted-foreground">Status</div>
@@ -327,7 +340,11 @@ export default function OrganizationSettingsPage() {
 
           {canEdit && (
             <div className="flex justify-end pt-4">
-              <Button onClick={handleSave} disabled={isSaving || !formData.name.trim()}>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !formData.name.trim()}
+                className="w-full sm:w-auto"
+              >
                 <Save className="mr-2 h-4 w-4" />
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
@@ -376,7 +393,10 @@ export default function OrganizationSettingsPage() {
             </div>
 
             {canEdit && (
-              <Link href={`/protected/settings/organizations/${organization.slug}/members`}>
+              <Link
+                href={`/protected/settings/organizations/${organization.slug}/members`}
+                className="block"
+              >
                 <Button variant="outline" className="w-full">
                   <Users className="mr-2 h-4 w-4" />
                   Manage Members
