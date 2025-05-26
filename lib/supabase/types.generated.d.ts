@@ -1037,6 +1037,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_change_member_role: {
+        Args: {
+          changer_user_id: string
+          target_member_id: number
+          new_role: string
+          org_id: number
+        }
+        Returns: boolean
+      }
       convert_slugs_to_hash: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1101,6 +1110,14 @@ export type Database = {
           raw_user_meta_data: Json
         }[]
       }
+      get_user_organization_ids: {
+        Args: {
+          target_user_id: string
+        }
+        Returns: {
+          organization_id: number
+        }[]
+      }
       get_user_organizations: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1135,6 +1152,13 @@ export type Database = {
       test_user_signup_process: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      update_organization_member_role: {
+        Args: {
+          member_id: number
+          new_role: string
+        }
+        Returns: boolean
       }
       user_has_org_permission: {
         Args: {

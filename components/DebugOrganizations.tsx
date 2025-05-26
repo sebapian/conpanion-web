@@ -4,11 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { organizationAPI } from '@/lib/api/organizations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useDebug } from '@/utils/debug';
 
 export function DebugOrganizations() {
   const { user } = useAuth();
   const [debugData, setDebugData] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const isDebug = useDebug();
+
+  // Don't render if debug mode is disabled
+  if (!isDebug) {
+    return null;
+  }
 
   useEffect(() => {
     const loadDebugData = async () => {

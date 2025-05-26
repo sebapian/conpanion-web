@@ -12,15 +12,21 @@ import { Building2, Users, Settings, Save, ArrowLeft, Shield, Database } from 'l
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Organization, OrganizationMembership } from '@/lib/types/organization';
+import { organizationAPI } from '@/lib/api/organizations';
 
 export default function OrganizationSettingsPage() {
   const params = useParams();
   const router = useRouter();
-  const { memberships, current, switchOrganization } = useOrganization();
+  const { memberships, current, switchOrganization, updateOrganization } = useOrganization();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [membership, setMembership] = useState<OrganizationMembership | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const [memberCount, setMemberCount] = useState<number>(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -28,10 +34,43 @@ export default function OrganizationSettingsPage() {
     description: '',
   });
 
+  // Form validation
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const slug = params.slug as string;
 
+  // Form validation
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Organization name is required';
+    } else if (formData.name.length < 2) {
+      newErrors.name = 'Organization name must be at least 2 characters';
+    } else if (formData.name.length > 50) {
+      newErrors.name = 'Organization name must be less than 50 characters';
+    }
+
+    if (formData.description && formData.description.length > 500) {
+      newErrors.description = 'Description must be less than 500 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Clear save message after 5 seconds
   useEffect(() => {
-    const loadOrganization = () => {
+    if (saveMessage) {
+      const timer = setTimeout(() => {
+        setSaveMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveMessage]);
+
+  useEffect(() => {
+    const loadOrganization = async () => {
       const foundMembership = memberships.find((m) => m.organization.slug === slug);
 
       if (foundMembership) {
@@ -41,6 +80,16 @@ export default function OrganizationSettingsPage() {
           name: foundMembership.organization.name || '',
           description: foundMembership.organization.description || '',
         });
+
+        // Load member count
+        try {
+          const members = await organizationAPI.getOrganizationMembers(
+            foundMembership.organization_id,
+          );
+          setMemberCount(members.length);
+        } catch (error) {
+          console.error('Failed to load member count:', error);
+        }
       } else {
         // Organization not found, redirect to organizations page
         router.push('/protected/settings/organizations');
@@ -56,15 +105,45 @@ export default function OrganizationSettingsPage() {
   const handleSave = async () => {
     if (!organization) return;
 
+    // Clear previous messages and errors
+    setSaveMessage(null);
+    setErrors({});
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Here you would call the update organization API
-      console.log('Saving organization settings:', formData);
-      // await updateOrganization(organization.id, formData);
-      alert('Settings saved successfully! (This is a demo - changes are not actually saved)');
-    } catch (error) {
+      // Call the update organization API
+      await updateOrganization(organization.id, {
+        name: formData.name.trim(),
+        description: formData.description?.trim() || undefined,
+      });
+
+      // Update local organization state
+      setOrganization((prev) =>
+        prev
+          ? {
+              ...prev,
+              name: formData.name.trim(),
+              description: formData.description?.trim() || null,
+            }
+          : null,
+      );
+
+      // Show success message
+      setSaveMessage({
+        type: 'success',
+        text: 'Organization settings updated successfully!',
+      });
+    } catch (error: any) {
       console.error('Failed to save organization settings:', error);
-      alert('Failed to save settings');
+      setSaveMessage({
+        type: 'error',
+        text: error.message || 'Failed to save organization settings. Please try again.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -135,6 +214,9 @@ export default function OrganizationSettingsPage() {
             <h1 className="flex items-center gap-2 text-3xl font-bold">
               <Building2 className="h-8 w-8" />
               {organization.name}
+              {formData.name !== organization.name && (
+                <span className="text-sm font-normal text-muted-foreground">(unsaved changes)</span>
+              )}
             </h1>
             <p className="text-muted-foreground">Organization settings and configuration</p>
           </div>
@@ -160,7 +242,7 @@ export default function OrganizationSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold">{organization.slug}</div>
               <div className="text-xs text-muted-foreground">Slug</div>
@@ -168,6 +250,10 @@ export default function OrganizationSettingsPage() {
             <div className="text-center">
               <div className="text-2xl font-bold">{membership.role}</div>
               <div className="text-xs text-muted-foreground">Your Role</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{memberCount}</div>
+              <div className="text-xs text-muted-foreground">Members</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
@@ -194,9 +280,17 @@ export default function OrganizationSettingsPage() {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => {
+                setFormData((prev) => ({ ...prev, name: e.target.value }));
+                // Clear error when user starts typing
+                if (errors.name) {
+                  setErrors((prev) => ({ ...prev, name: '' }));
+                }
+              }}
               disabled={!canEdit}
+              className={errors.name ? 'border-destructive' : ''}
             />
+            {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
           </div>
 
           <div className="space-y-2">
@@ -204,15 +298,36 @@ export default function OrganizationSettingsPage() {
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => {
+                setFormData((prev) => ({ ...prev, description: e.target.value }));
+                // Clear error when user starts typing
+                if (errors.description) {
+                  setErrors((prev) => ({ ...prev, description: '' }));
+                }
+              }}
               disabled={!canEdit}
+              className={errors.description ? 'border-destructive' : ''}
               rows={3}
             />
+            {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
           </div>
+
+          {/* Save Message */}
+          {saveMessage && (
+            <div
+              className={`rounded-md border p-3 text-sm ${
+                saveMessage.type === 'success'
+                  ? 'border-green-200 bg-green-50 text-green-800'
+                  : 'border-destructive/20 bg-destructive/10 text-destructive'
+              }`}
+            >
+              {saveMessage.text}
+            </div>
+          )}
 
           {canEdit && (
             <div className="flex justify-end pt-4">
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button onClick={handleSave} disabled={isSaving || !formData.name.trim()}>
                 <Save className="mr-2 h-4 w-4" />
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
@@ -261,10 +376,12 @@ export default function OrganizationSettingsPage() {
             </div>
 
             {canEdit && (
-              <Button variant="outline" className="w-full">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Members (Coming Soon)
-              </Button>
+              <Link href={`/protected/settings/organizations/${organization.slug}/members`}>
+                <Button variant="outline" className="w-full">
+                  <Users className="mr-2 h-4 w-4" />
+                  Manage Members
+                </Button>
+              </Link>
             )}
           </div>
         </CardContent>

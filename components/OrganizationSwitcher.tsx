@@ -159,10 +159,15 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
             {/* Organization Actions */}
             {current && (
               <>
-                <DropdownMenuItem className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>Manage Members</span>
-                </DropdownMenuItem>
+                <Link href={`/protected/settings/organizations/${current.slug}/members`}>
+                  <DropdownMenuItem
+                    className="flex cursor-pointer items-center gap-2"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Manage Members</span>
+                  </DropdownMenuItem>
+                </Link>
                 <Link href={`/protected/settings/organizations/${current.slug}`}>
                   <DropdownMenuItem
                     className="flex cursor-pointer items-center gap-2"

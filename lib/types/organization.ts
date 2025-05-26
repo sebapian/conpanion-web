@@ -42,11 +42,6 @@ export interface UpdateOrganizationRequest {
   description?: string;
 }
 
-export interface InviteUserRequest {
-  email: string;
-  role: 'owner' | 'admin' | 'member' | 'guest';
-}
-
 export interface UpdateMembershipRequest {
   role?: 'owner' | 'admin' | 'member' | 'guest';
   status?: 'pending' | 'active' | 'suspended' | 'deactivated';
@@ -67,12 +62,12 @@ export interface OrganizationContext {
   deleteOrganization: (orgId: number) => Promise<void>;
 
   // Member management
-  inviteUser: (orgId: number, data: InviteUserRequest) => Promise<void>;
   updateMembership: (membershipId: number, data: UpdateMembershipRequest) => Promise<void>;
   removeMember: (membershipId: number) => Promise<void>;
 
   // Data refresh
   refresh: () => Promise<void>;
+  loadFullOrganizationDetails: (orgId: number) => Promise<Organization | null>;
 }
 
 // Utility types
@@ -85,7 +80,6 @@ export interface OrganizationPermissions {
   canManageSettings: boolean;
   canDeleteOrganization: boolean;
   canCreateProjects: boolean;
-  canInviteUsers: boolean;
 }
 
 // Database function return types

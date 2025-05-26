@@ -47,13 +47,13 @@ export function useAuth() {
           });
         }
 
-        const userProfile = await supabase
+        const { data: userProfile, error: userProfileError } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', session?.user?.id)
           .single();
         const organizationId =
-          userProfile?.data?.current_organization_id ?? userProfile?.data?.default_organization_id;
+          userProfile?.current_organization_id ?? userProfile?.default_organization_id;
         if (!organizationId) {
           console.error('No organization found for user:', session?.user?.id);
           setUser(null);

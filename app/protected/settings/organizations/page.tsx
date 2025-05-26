@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Building2, Users, Settings, ExternalLink } from 'lucide-react';
 import { DebugOrganizations } from '@/components/DebugOrganizations';
+import { DebugWrapper } from '@/utils/debug';
 import Link from 'next/link';
 
 export default function OrganizationsSettingsPage() {
@@ -164,42 +165,46 @@ export default function OrganizationsSettingsPage() {
       </Card>
 
       {/* Debug API Calls */}
-      <DebugOrganizations />
+      <DebugWrapper>
+        <DebugOrganizations />
+      </DebugWrapper>
 
       {/* Raw Data Debug */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Context Debug Information
-          </CardTitle>
-          <CardDescription>Raw data from Organization Context</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <h4 className="mb-2 font-medium">Current Organization:</h4>
-              <pre className="overflow-auto rounded bg-muted p-3 text-xs">
-                {JSON.stringify(current, null, 2)}
-              </pre>
-            </div>
+      <DebugWrapper>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Context Debug Information
+            </CardTitle>
+            <CardDescription>Raw data from Organization Context</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h4 className="mb-2 font-medium">Current Organization:</h4>
+                <pre className="overflow-auto rounded bg-muted p-3 text-xs">
+                  {JSON.stringify(current, null, 2)}
+                </pre>
+              </div>
 
-            <div>
-              <h4 className="mb-2 font-medium">Memberships:</h4>
-              <pre className="overflow-auto rounded bg-muted p-3 text-xs">
-                {JSON.stringify(memberships, null, 2)}
-              </pre>
-            </div>
+              <div>
+                <h4 className="mb-2 font-medium">Memberships:</h4>
+                <pre className="overflow-auto rounded bg-muted p-3 text-xs">
+                  {JSON.stringify(memberships, null, 2)}
+                </pre>
+              </div>
 
-            <div>
-              <h4 className="mb-2 font-medium">Loading State:</h4>
-              <pre className="overflow-auto rounded bg-muted p-3 text-xs">
-                {JSON.stringify({ isLoading, error }, null, 2)}
-              </pre>
+              <div>
+                <h4 className="mb-2 font-medium">Loading State:</h4>
+                <pre className="overflow-auto rounded bg-muted p-3 text-xs">
+                  {JSON.stringify({ isLoading, error }, null, 2)}
+                </pre>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </DebugWrapper>
     </div>
   );
 }

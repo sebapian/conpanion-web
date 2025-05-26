@@ -8,10 +8,11 @@ import {
   OrganizationMembership,
   OrganizationContext as OrganizationContextType,
   CreateOrganizationRequest,
-  InviteUserRequest,
   UpdateMembershipRequest,
   UpdateOrganizationRequest,
   UserOrganizationsResult,
+  OrganizationRole,
+  OrganizationStatus,
 } from '@/lib/types/organization';
 
 const OrganizationContext = createContext<OrganizationContextType | null>(null);
@@ -45,30 +46,20 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       // Load user's organizations
       const userOrgs = await organizationAPI.getUserOrganizations();
 
-      // Convert to membership format
-      const membershipsData: OrganizationMembership[] = userOrgs.map((org) => ({
-        id: 0, // This will be populated by a proper API call
-        organization_id: org.organization_id,
-        user_id: user.id,
-        role: org.user_role as any,
-        status: org.user_status as any,
-        joined_at: org.joined_at,
-        invited_at: null,
-        invited_by: null,
-        last_accessed_at: org.last_accessed_at,
-        notifications_enabled: true,
-        organization: {
-          id: org.organization_id,
-          name: org.organization_name,
-          slug: org.organization_slug,
-          // Add other required fields with defaults
-          description: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          created_by: user.id,
-          is_active: true,
-        },
-      }));
+      // Convert to membership format with proper type safety
+      const membershipsData: OrganizationMembership[] = await Promise.all(
+        userOrgs.map(async (org) => {
+          // Get the user's actual membership record for this organization
+          const membershipDetails = await organizationAPI.getUserMembership(org.organization_id);
+
+          if (membershipDetails) {
+            // Use the real membership data from the database
+            return membershipDetails;
+          } else {
+            return {} as OrganizationMembership;
+          }
+        }),
+      );
 
       setMemberships(membershipsData);
 
@@ -144,19 +135,35 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
         await organizationAPI.updateOrganization(orgId, data);
 
-        // Update local state
+        // Update local state immediately for better UX
         if (current && current.id === orgId) {
-          setCurrent({ ...current, ...data });
+          setCurrent({ ...current, ...data, updated_at: new Date().toISOString() });
         }
 
-        // Reload to get fresh data
-        await loadOrganizations();
+        // Update memberships array
+        setMemberships((prev) =>
+          prev.map((membership) =>
+            membership.organization_id === orgId
+              ? {
+                  ...membership,
+                  organization: {
+                    ...membership.organization,
+                    ...data,
+                    updated_at: new Date().toISOString(),
+                  },
+                }
+              : membership,
+          ),
+        );
+
+        // Optionally reload to ensure consistency (can be disabled for performance)
+        // await loadOrganizations();
       } catch (err) {
         handleError(err);
         throw err;
       }
     },
-    [current, loadOrganizations, handleError, clearError],
+    [current, handleError, clearError],
   );
 
   const deleteOrganization = useCallback(
@@ -184,23 +191,6 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       }
     },
     [current, memberships, switchOrganization, handleError, clearError],
-  );
-
-  const inviteUser = useCallback(
-    async (orgId: number, data: InviteUserRequest) => {
-      try {
-        clearError();
-
-        await organizationAPI.inviteUser(orgId, data);
-
-        // Reload to get fresh member data
-        await loadOrganizations();
-      } catch (err) {
-        handleError(err);
-        throw err;
-      }
-    },
-    [loadOrganizations, handleError, clearError],
   );
 
   const updateMembership = useCallback(
@@ -241,6 +231,68 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     await loadOrganizations();
   }, [loadOrganizations]);
 
+  const loadFullOrganizationDetails = useCallback(
+    async (orgId: number): Promise<Organization | null> => {
+      try {
+        const orgDetails = await organizationAPI.getOrganization(orgId);
+
+        if (orgDetails) {
+          // Update the organization in current state if it matches
+          if (current && current.id === orgId) {
+            setCurrent({
+              id: orgDetails.id,
+              name: orgDetails.name,
+              slug: orgDetails.slug,
+              description: orgDetails.description,
+              created_at: orgDetails.created_at,
+              updated_at: orgDetails.updated_at,
+              created_by: orgDetails.created_by,
+              is_active: orgDetails.is_active,
+            });
+          }
+
+          // Update the organization in memberships array
+          setMemberships((prev) =>
+            prev.map((membership) =>
+              membership.organization_id === orgId
+                ? {
+                    ...membership,
+                    organization: {
+                      id: orgDetails.id,
+                      name: orgDetails.name,
+                      slug: orgDetails.slug,
+                      description: orgDetails.description,
+                      created_at: orgDetails.created_at,
+                      updated_at: orgDetails.updated_at,
+                      created_by: orgDetails.created_by,
+                      is_active: orgDetails.is_active,
+                    },
+                  }
+                : membership,
+            ),
+          );
+
+          return {
+            id: orgDetails.id,
+            name: orgDetails.name,
+            slug: orgDetails.slug,
+            description: orgDetails.description,
+            created_at: orgDetails.created_at,
+            updated_at: orgDetails.updated_at,
+            created_by: orgDetails.created_by,
+            is_active: orgDetails.is_active,
+          };
+        }
+
+        return null;
+      } catch (err) {
+        console.error('Failed to load organization details:', err);
+        return null;
+      }
+    },
+    [current],
+  );
+
   // Load organizations when user changes
   useEffect(() => {
     if (user) {
@@ -261,10 +313,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     createOrganization,
     updateOrganization,
     deleteOrganization,
-    inviteUser,
     updateMembership,
     removeMember,
     refresh,
+    loadFullOrganizationDetails,
   };
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;

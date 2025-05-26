@@ -12,6 +12,7 @@ import { ApprovalStatus } from '@/lib/api/entries';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { DiaryApprovalStatus } from './approval-status';
+import { DebugWrapper } from '@/utils/debug';
 
 interface ViewSiteDiaryProps {
   open: boolean;
@@ -359,22 +360,24 @@ export function ViewSiteDiary({ open, onOpenChange, diaryId, onDiaryUpdated }: V
             )}
 
             {/* Debug section - remove after debugging */}
-            <div className="mt-4 border-t pt-4 text-xs text-muted-foreground">
-              <h4 className="mb-2 font-bold">Debug Info:</h4>
-              <div className="space-y-1">
-                <p>Current User ID: {user?.id || 'Not logged in'}</p>
-                <p>Diary Author ID: {diaryData?.diary.submitted_by_user_id || 'Unknown'}</p>
-                <p>Approval Status: {approvalStatus || 'No status'}</p>
-                <p>
-                  Show Edit Button:{' '}
-                  {Boolean(
-                    user &&
-                      diaryData?.diary.submitted_by_user_id === user.id &&
-                      approvalStatus === 'draft',
-                  ).toString()}
-                </p>
+            <DebugWrapper>
+              <div className="mt-4 border-t pt-4 text-xs text-muted-foreground">
+                <h4 className="mb-2 font-bold">Debug Info:</h4>
+                <div className="space-y-1">
+                  <p>Current User ID: {user?.id || 'Not logged in'}</p>
+                  <p>Diary Author ID: {diaryData?.diary.submitted_by_user_id || 'Unknown'}</p>
+                  <p>Approval Status: {approvalStatus || 'No status'}</p>
+                  <p>
+                    Show Edit Button:{' '}
+                    {Boolean(
+                      user &&
+                        diaryData?.diary.submitted_by_user_id === user.id &&
+                        approvalStatus === 'draft',
+                    ).toString()}
+                  </p>
+                </div>
               </div>
-            </div>
+            </DebugWrapper>
           </div>
         ) : (
           <div className="py-4 text-center">No diary data found</div>
