@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Building2, ChevronDown, Plus, Settings, Users, LogOut } from 'lucide-react';
+import { Building2, ChevronDown, Settings, Users, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,23 +14,13 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { OrganizationSwitcherProps } from '@/lib/types/organization';
-import { CreateOrganizationDialog } from '@/components/CreateOrganizationDialog';
 import Link from 'next/link';
 
-export function OrganizationSwitcher({
-  className,
-  showCreateOption = true,
-}: OrganizationSwitcherProps) {
+export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const { current, memberships, isLoading, switchOrganization, error } = useOrganization();
 
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const handleOpenCreateDialog = () => {
-    setIsDropdownOpen(false); // Close dropdown first
-    setIsCreateDialogOpen(true); // Then open modal
-  };
 
   const handleSwitchOrganization = async (orgId: number) => {
     if (current?.id === orgId) return;
@@ -186,17 +176,6 @@ export function OrganizationSwitcher({
               </>
             )}
 
-            {/* Create New Organization */}
-            {showCreateOption && (
-              <DropdownMenuItem
-                onClick={handleOpenCreateDialog}
-                className="flex cursor-pointer items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Create Organization</span>
-              </DropdownMenuItem>
-            )}
-
             {/* Leave Organization (if not owner and has other orgs) */}
             {current &&
               memberships.find((m) => m.organization_id === current.id)?.role !== 'owner' &&
@@ -212,9 +191,6 @@ export function OrganizationSwitcher({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {/* Create Organization Dialog */}
-      <CreateOrganizationDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
     </>
   );
 }

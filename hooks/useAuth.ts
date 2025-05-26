@@ -7,6 +7,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 
 export type UserData = User & {
   activeProjectId: number;
+  activeOrganizationId: number;
 };
 
 export function useAuth() {
@@ -46,16 +47,33 @@ export function useAuth() {
           });
         }
 
-        // use this for testing, use 1 by default
-        let projectId: number = 1;
+        const userProfile = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', session?.user?.id)
+          .single();
+        const organizationId =
+          userProfile?.data?.current_organization_id ?? userProfile?.data?.default_organization_id;
+        if (!organizationId) {
+          console.error('No organization found for user:', session?.user?.id);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        // get projects for the organization
+        let projectId: number;
         // const { data: projects } = await supabase.from('projects').select('id').eq('owner_id', session?.user?.id)
-        const { data: projects } = await supabase.from('projects').select('id').eq('id', projectId);
+        const { data: projects } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('organization_id', organizationId);
         if (!projects?.length) {
           // Create project first
           const { data: newProject, error: projectError } = await supabase
             .from('projects')
             .insert({
-              id: 1,
+              organization_id: organizationId,
               owner_id: session?.user?.id,
               name: `${session?.user?.email}'s Project`,
               description: `${session?.user?.email}'s Project Description`,
@@ -79,6 +97,9 @@ export function useAuth() {
           }
 
           projectId = newProject.id;
+        } else {
+          // use the first project in the organization for now
+          projectId = projects[0].id;
         }
 
         const { data: projectUser } = await supabase
@@ -108,6 +129,7 @@ export function useAuth() {
         setUser({
           ...session?.user,
           activeProjectId: projectId,
+          activeOrganizationId: organizationId,
         });
       } catch (error) {
         console.error('Error getting auth session:', error);

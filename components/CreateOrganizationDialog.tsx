@@ -13,13 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { CreateOrganizationRequest } from '@/lib/types/organization';
 
@@ -34,7 +28,6 @@ export function CreateOrganizationDialog({ open, onOpenChange }: CreateOrganizat
   const [formData, setFormData] = useState<CreateOrganizationRequest>({
     name: '',
     description: '',
-    plan_type: 'free',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -45,7 +38,6 @@ export function CreateOrganizationDialog({ open, onOpenChange }: CreateOrganizat
       setFormData({
         name: '',
         description: '',
-        plan_type: 'free',
       });
       setErrors({});
       setIsLoading(false);
@@ -202,25 +194,6 @@ export function CreateOrganizationDialog({ open, onOpenChange }: CreateOrganizat
               rows={3}
             />
             {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="plan_type">Plan Type</Label>
-            <Select
-              value={formData.plan_type}
-              onValueChange={(value) => handleInputChange('plan_type', value)}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="free">Free Plan</SelectItem>
-                <SelectItem value="starter">Starter Plan</SelectItem>
-                <SelectItem value="professional">Professional Plan</SelectItem>
-                <SelectItem value="enterprise">Enterprise Plan</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {errors.submit && (

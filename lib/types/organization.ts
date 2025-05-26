@@ -13,8 +13,7 @@ export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 export type UserProfileInsert = Database['public']['Tables']['user_profiles']['Insert'];
 export type UserProfileUpdate = Database['public']['Tables']['user_profiles']['Update'];
 
-export type UserOrganizationSession =
-  Database['public']['Tables']['user_organization_sessions']['Row'];
+// UserOrganizationSession table was removed in cleanup
 
 // Enhanced types with relations
 export interface OrganizationWithMembership extends Organization {
@@ -36,31 +35,21 @@ export interface UserProfileWithOrganization extends UserProfile {
 export interface CreateOrganizationRequest {
   name: string;
   description?: string;
-  subdomain?: string;
-  domain?: string;
-  plan_type?: 'free' | 'starter' | 'professional' | 'enterprise';
 }
 
 export interface UpdateOrganizationRequest {
   name?: string;
   description?: string;
-  subdomain?: string;
-  domain?: string;
-  max_members?: number;
-  plan_type?: 'free' | 'starter' | 'professional' | 'enterprise';
-  billing_email?: string;
 }
 
 export interface InviteUserRequest {
   email: string;
   role: 'owner' | 'admin' | 'member' | 'guest';
-  display_name?: string;
 }
 
 export interface UpdateMembershipRequest {
   role?: 'owner' | 'admin' | 'member' | 'guest';
   status?: 'pending' | 'active' | 'suspended' | 'deactivated';
-  display_name?: string;
   notifications_enabled?: boolean;
 }
 
@@ -89,7 +78,6 @@ export interface OrganizationContext {
 // Utility types
 export type OrganizationRole = 'owner' | 'admin' | 'member' | 'guest';
 export type OrganizationStatus = 'pending' | 'active' | 'suspended' | 'deactivated';
-export type PlanType = 'free' | 'starter' | 'professional' | 'enterprise';
 
 // Permission helpers
 export interface OrganizationPermissions {
@@ -122,7 +110,6 @@ export interface OrganizationError {
 // Component props types
 export interface OrganizationSwitcherProps {
   className?: string;
-  showCreateOption?: boolean;
 }
 
 export interface OrganizationSettingsProps {

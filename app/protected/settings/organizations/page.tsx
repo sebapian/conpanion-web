@@ -5,58 +5,12 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, Settings, Plus, ExternalLink } from 'lucide-react';
+import { Building2, Users, Settings, ExternalLink } from 'lucide-react';
 import { DebugOrganizations } from '@/components/DebugOrganizations';
 import Link from 'next/link';
 
 export default function OrganizationsSettingsPage() {
-  const { current, memberships, isLoading, error, createOrganization, switchOrganization } =
-    useOrganization();
-
-  const handleCreateTestOrg = async () => {
-    try {
-      await createOrganization({
-        name: `Test Org ${Date.now()}`,
-        description: 'A test organization created from the settings page',
-        plan_type: 'free',
-      });
-    } catch (err) {
-      console.error('Failed to create test organization:', err);
-    }
-  };
-
-  const handleSetupOrganization = async () => {
-    try {
-      // Call the Supabase function directly to create organization for current user
-      const { createClient } = await import('@/utils/supabase/client');
-      const supabase = createClient();
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        alert('No user found');
-        return;
-      }
-
-      const { data, error } = await supabase.rpc('create_organization_for_existing_user', {
-        target_user_id: user.id,
-      });
-
-      if (error) {
-        console.error('Setup organization error:', error);
-        alert(`Error: ${error.message}`);
-      } else {
-        console.log('Setup organization result:', data);
-        alert(`Organization created with ID: ${data}`);
-        // Refresh the page to reload data
-        window.location.reload();
-      }
-    } catch (err) {
-      console.error('Failed to setup organization:', err);
-      alert(`Failed: ${err}`);
-    }
-  };
+  const { current, memberships, isLoading, error, switchOrganization } = useOrganization();
 
   if (isLoading) {
     return (
@@ -88,27 +42,11 @@ export default function OrganizationsSettingsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Organization Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your organizations and multi-tenancy settings
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={handleCreateTestOrg} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create Test Organization
-          </Button>
-          <Button
-            onClick={handleSetupOrganization}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Building2 className="h-4 w-4" />
-            Setup Organization for Current User
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Organization Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your organizations and multi-tenancy settings
+        </p>
       </div>
 
       {/* Current Organization */}
@@ -143,18 +81,10 @@ export default function OrganizationsSettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t pt-4 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold">{current.id}</div>
                   <div className="text-xs text-muted-foreground">ID</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{current.plan_type}</div>
-                  <div className="text-xs text-muted-foreground">Plan</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{current.max_members}</div>
-                  <div className="text-xs text-muted-foreground">Max Members</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold">

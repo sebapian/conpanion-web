@@ -185,6 +185,92 @@ export type Database = {
         }
         Relationships: []
       }
+      form_entries: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          form_id: number
+          id: number
+          is_synced: boolean
+          last_synced_at: string | null
+          name: string | null
+          submitted_by_user_id: string
+          team_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          form_id: number
+          id?: never
+          is_synced?: boolean
+          last_synced_at?: string | null
+          name?: string | null
+          submitted_by_user_id: string
+          team_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          form_id?: number
+          id?: never
+          is_synced?: boolean
+          last_synced_at?: string | null
+          name?: string | null
+          submitted_by_user_id?: string
+          team_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_entries_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_entry_answers: {
+        Row: {
+          answer_value: Json | null
+          created_at: string
+          entry_id: number
+          id: number
+          item_id: number
+        }
+        Insert: {
+          answer_value?: Json | null
+          created_at?: string
+          entry_id: number
+          id?: never
+          item_id: number
+        }
+        Update: {
+          answer_value?: Json | null
+          created_at?: string
+          entry_id?: number
+          id?: never
+          item_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_entry_answers_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "form_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_entry_answers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "form_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_items: {
         Row: {
           display_order: number
@@ -313,7 +399,6 @@ export type Database = {
       }
       organization_users: {
         Row: {
-          display_name: string | null
           id: number
           invited_at: string | null
           invited_by: string | null
@@ -326,7 +411,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          display_name?: string | null
           id?: number
           invited_at?: string | null
           invited_by?: string | null
@@ -339,7 +423,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          display_name?: string | null
           id?: number
           invited_at?: string | null
           invited_by?: string | null
@@ -363,57 +446,33 @@ export type Database = {
       }
       organizations: {
         Row: {
-          billing_email: string | null
           created_at: string
           created_by: string
-          data_region: string | null
           description: string | null
-          domain: string | null
           id: number
           is_active: boolean
-          max_members: number | null
           name: string
-          plan_type: string
-          retention_days: number | null
           slug: string
-          subdomain: string | null
-          subscription_id: string | null
           updated_at: string
         }
         Insert: {
-          billing_email?: string | null
           created_at?: string
           created_by: string
-          data_region?: string | null
           description?: string | null
-          domain?: string | null
           id?: number
           is_active?: boolean
-          max_members?: number | null
           name: string
-          plan_type?: string
-          retention_days?: number | null
           slug: string
-          subdomain?: string | null
-          subscription_id?: string | null
           updated_at?: string
         }
         Update: {
-          billing_email?: string | null
           created_at?: string
           created_by?: string
-          data_region?: string | null
           description?: string | null
-          domain?: string | null
           id?: number
           is_active?: boolean
-          max_members?: number | null
           name?: string
-          plan_type?: string
-          retention_days?: number | null
           slug?: string
-          subdomain?: string | null
-          subscription_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -537,6 +596,187 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "projects_users_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_diaries: {
+        Row: {
+          created_at: string
+          date: string
+          deleted_at: string | null
+          id: number
+          metadata: Json | null
+          name: string
+          project_id: number
+          submitted_by_user_id: string
+          template_id: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          deleted_at?: string | null
+          id?: never
+          metadata?: Json | null
+          name: string
+          project_id: number
+          submitted_by_user_id: string
+          template_id: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          deleted_at?: string | null
+          id?: never
+          metadata?: Json | null
+          name?: string
+          project_id?: number
+          submitted_by_user_id?: string
+          template_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_diaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_diaries_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "site_diary_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_diary_answers: {
+        Row: {
+          answer_value: Json | null
+          created_at: string
+          diary_id: number
+          id: number
+          item_id: number
+        }
+        Insert: {
+          answer_value?: Json | null
+          created_at?: string
+          diary_id: number
+          id?: never
+          item_id: number
+        }
+        Update: {
+          answer_value?: Json | null
+          created_at?: string
+          diary_id?: number
+          id?: never
+          item_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_diary_answers_diary_id_fkey"
+            columns: ["diary_id"]
+            isOneToOne: false
+            referencedRelation: "site_diaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_diary_answers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "site_diary_template_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_diary_template_items: {
+        Row: {
+          display_order: number
+          id: number
+          is_required: boolean | null
+          item_type: Database["public"]["Enums"]["item_type"]
+          metadata: Json | null
+          options: Json | null
+          question_value: string | null
+          template_id: number
+        }
+        Insert: {
+          display_order: number
+          id?: never
+          is_required?: boolean | null
+          item_type: Database["public"]["Enums"]["item_type"]
+          metadata?: Json | null
+          options?: Json | null
+          question_value?: string | null
+          template_id: number
+        }
+        Update: {
+          display_order?: number
+          id?: never
+          is_required?: boolean | null
+          item_type?: Database["public"]["Enums"]["item_type"]
+          metadata?: Json | null
+          options?: Json | null
+          question_value?: string | null
+          template_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_diary_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "site_diary_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_diary_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string | null
+          id: number
+          metadata: Json | null
+          name: string
+          project_id: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: never
+          metadata?: Json | null
+          name: string
+          project_id: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: never
+          metadata?: Json | null
+          name?: string
+          project_id?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_diary_templates_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -732,50 +972,6 @@ export type Database = {
           },
         ]
       }
-      user_organization_sessions: {
-        Row: {
-          actions_performed: number | null
-          id: number
-          ip_address: unknown | null
-          last_activity_at: string | null
-          organization_id: number
-          session_end: string | null
-          session_start: string
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          actions_performed?: number | null
-          id?: number
-          ip_address?: unknown | null
-          last_activity_at?: string | null
-          organization_id: number
-          session_end?: string | null
-          session_start?: string
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          actions_performed?: number | null
-          id?: number
-          ip_address?: unknown | null
-          last_activity_at?: string | null
-          organization_id?: number
-          session_end?: string | null
-          session_start?: string
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_organization_sessions_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_profiles: {
         Row: {
           created_at: string
@@ -841,6 +1037,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_slugs_to_hash: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          org_id: number
+          old_slug: string
+          new_slug: string
+          updated: boolean
+        }[]
+      }
       create_organization: {
         Args: {
           org_name: string
@@ -917,19 +1122,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      migrate_projects_to_organizations: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      migrate_users_to_default_organization: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          user_id: string
-          profile_created: boolean
-          membership_created: boolean
-        }[]
-      }
-      rerun_data_migration: {
+      rerun_slug_conversion: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
@@ -938,6 +1131,10 @@ export type Database = {
           new_org_id: number
         }
         Returns: boolean
+      }
+      test_user_signup_process: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       user_has_org_permission: {
         Args: {

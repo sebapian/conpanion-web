@@ -56,7 +56,6 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         invited_at: null,
         invited_by: null,
         last_accessed_at: org.last_accessed_at,
-        display_name: null,
         notifications_enabled: true,
         organization: {
           id: org.organization_id,
@@ -67,15 +66,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           created_by: user.id,
-          max_members: 100,
           is_active: true,
-          domain: null,
-          subdomain: org.organization_slug,
-          plan_type: 'free',
-          subscription_id: null,
-          billing_email: null,
-          data_region: 'us-east-1',
-          retention_days: 365,
         },
       }));
 

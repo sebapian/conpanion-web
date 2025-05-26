@@ -14,11 +14,12 @@ export type TaskComment = Omit<
 
 export type TaskMetadata = Database['public']['Tables']['task_metadata']['Row'];
 
-export const useTasks = (options?: { projectId?: number }) => {
+export const useTasks = () => {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const projectId = options?.projectId;
+  const { user } = useAuth();
+  const projectId = user?.activeOrganizationId;
 
   const getTasks = useCallback(async () => {
     setLoading(true);
@@ -222,11 +223,12 @@ export const useTasks = (options?: { projectId?: number }) => {
   return { tasks, loading, error, refresh: getTasks };
 };
 
-export const useTaskStatuses = (options?: { projectId?: number }) => {
+export const useTaskStatuses = () => {
   const [statuses, setStatuses] = useState<Database['public']['Tables']['statuses']['Row'][]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const projectId = options?.projectId;
+  const { user } = useAuth();
+  const projectId = user?.activeOrganizationId;
 
   const getStatuses = useCallback(async () => {
     setLoading(true);
@@ -266,13 +268,14 @@ export const useTaskStatuses = (options?: { projectId?: number }) => {
   return { statuses, loading, error, refresh: getStatuses };
 };
 
-export const useTaskPriorities = (options?: { projectId?: number }) => {
+export const useTaskPriorities = () => {
   const [priorities, setPriorities] = useState<Database['public']['Tables']['priorities']['Row'][]>(
     [],
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const projectId = options?.projectId;
+  const { user } = useAuth();
+  const projectId = user?.activeOrganizationId;
 
   const getPriorities = useCallback(async () => {
     setLoading(true);
