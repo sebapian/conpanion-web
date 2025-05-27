@@ -25,6 +25,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS create_default_task_settings_trigger ON public.projects;
+
 -- Create trigger that fires after project creation
 CREATE TRIGGER create_default_task_settings_trigger
   AFTER INSERT ON public.projects

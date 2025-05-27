@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
       }
+      console.log('🔄 AuthContext: session:', session);
 
       // use this for testing only
       if (!session?.user?.user_metadata?.avatar_url) {
@@ -130,79 +131,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // get projects for the organization
-      let projectId: number | null = null;
-      // const { data: projects } = await supabase.from('projects').select('id').eq('owner_id', session?.user?.id)
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('organization_id', organizationId);
-      if (!projects?.length) {
-        // Create project first
-        const { data: newProject, error: projectError } = await supabase
-          .from('projects')
-          .insert({
-            organization_id: organizationId,
-            owner_id: session?.user?.id,
-            name: `${session?.user?.email}'s Project`,
-            description: `${session?.user?.email}'s Project Description`,
-            created_by: session?.user?.id,
-          })
-          .select('id')
-          .single();
-
-        if (projectError || !newProject) {
-          // Enhanced error logging
-          console.error('Error creating project:', {
-            message: projectError?.message,
-            code: projectError?.code,
-            details: projectError?.details,
-            hint: projectError?.hint,
-            fullError: projectError,
-          });
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-
-        projectId = newProject.id;
-      } else {
-        const { data: organizationUsers } = await supabase
-          .from('organization_users')
-          .select('id, current_project_id, default_project_id')
-          .eq('organization_id', organizationId)
-          .eq('user_id', session?.user?.id)
-          .single();
-
-        projectId =
-          organizationUsers?.current_project_id ?? organizationUsers?.default_project_id ?? null;
-        if (!projectId) {
-          projectId = projects[0].id;
-        }
-      }
-
-      const { data: projectUser } = await supabase
-        .from('projects_users')
-        .select('id')
-        .eq('project_id', projectId)
+      const { data: organizationUsers } = await supabase
+        .from('organization_users')
+        .select('current_project_id, default_project_id')
+        .eq('organization_id', organizationId)
         .eq('user_id', session?.user?.id)
         .single();
 
-      if (!projectUser) {
-        // Create project-user relationship
-        const { error: relationError } = await supabase.from('projects_users').insert({
-          project_id: projectId,
-          user_id: session?.user?.id,
-          role: 'owner',
-          created_by: session?.user?.id,
-        });
+      const projectId =
+        organizationUsers?.current_project_id ?? organizationUsers?.default_project_id ?? null;
 
-        if (relationError) {
-          console.error('Error creating project-user relationship:', relationError);
-          setUser(null);
-          setLoading(false);
-          return;
-        }
+      // If no project found, this indicates a setup issue (should not happen with proper signup trigger)
+      if (!projectId) {
+        console.error('🚨 AuthContext: No project found for user:', session?.user?.id);
+        console.error('🚨 AuthContext: This indicates an incomplete signup process');
+        setUser(null);
+        setLoading(false);
+        return;
       }
 
       const newUserData = {

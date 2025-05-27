@@ -5,12 +5,12 @@
 
 -- Add project context columns to organization_users
 ALTER TABLE public.organization_users 
-ADD COLUMN current_project_id INTEGER REFERENCES public.projects(id) ON DELETE SET NULL,
-ADD COLUMN default_project_id INTEGER REFERENCES public.projects(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS current_project_id INTEGER REFERENCES public.projects(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS default_project_id INTEGER REFERENCES public.projects(id) ON DELETE SET NULL;
 
 -- Create indexes for better query performance
-CREATE INDEX organization_users_current_project_id_idx ON public.organization_users(current_project_id);
-CREATE INDEX organization_users_default_project_id_idx ON public.organization_users(default_project_id);
+CREATE INDEX IF NOT EXISTS organization_users_current_project_id_idx ON public.organization_users(current_project_id);
+CREATE INDEX IF NOT EXISTS organization_users_default_project_id_idx ON public.organization_users(default_project_id);
 
 -- Function to get user's current project context
 CREATE OR REPLACE FUNCTION public.get_user_project_context()
@@ -222,6 +222,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Drop existing trigger if it exists
+DROP TRIGGER IF EXISTS auto_set_project_context_trigger ON public.projects_users;
 -- Create trigger to auto-set project context
 CREATE TRIGGER auto_set_project_context_trigger
   AFTER INSERT OR UPDATE ON public.projects_users

@@ -72,6 +72,8 @@ CREATE INDEX IF NOT EXISTS projects_users_status_idx ON public.projects_users(st
 CREATE INDEX IF NOT EXISTS projects_users_invited_by_idx ON public.projects_users(invited_by);
 CREATE INDEX IF NOT EXISTS projects_users_email_idx ON public.projects_users(email);
 
+DROP FUNCTION IF EXISTS public.get_project_members(INTEGER);
+
 -- Function to get all members of a project with user details
 CREATE OR REPLACE FUNCTION public.get_project_members(
   p_project_id INTEGER
