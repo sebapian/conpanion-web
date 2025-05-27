@@ -713,9 +713,7 @@ export default function ProjectMembersPage() {
                             </DropdownMenu>
                           )}
                           {isCurrentUser(member) && (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              This is you
-                            </Badge>
+                            <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -828,7 +826,7 @@ export default function ProjectMembersPage() {
                       )}
                       {isCurrentUser(member) && (
                         <Badge variant="outline" className="text-xs text-muted-foreground">
-                          This is you
+                          —
                         </Badge>
                       )}
                     </div>

@@ -17,11 +17,23 @@ import {
   Shield,
   Trash2,
   CheckSquare,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Project, ProjectMembership } from '@/lib/types/project';
 import { projectAPI } from '@/lib/api/projects';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -35,6 +47,10 @@ export default function ProjectSettingsPage() {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+
+  // Delete state
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -167,6 +183,45 @@ export default function ProjectSettingsPage() {
         type: 'error',
         text: 'Failed to switch project',
       });
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!project) return;
+
+    setIsDeleting(true);
+    try {
+      // If this is the current project, we need to switch to another project first
+      let switchedToNewProject = false;
+      if (current?.id === project.id) {
+        // Find another project to switch to
+        const otherMembership = memberships.find((m) => m.project_id !== project.id);
+        if (otherMembership) {
+          await switchProject(otherMembership.project_id);
+          switchedToNewProject = true;
+        }
+      }
+
+      // Delete the project
+      await projectAPI.deleteProject(project.id);
+
+      // Navigate back to projects list
+      router.push('/protected/settings/projects');
+
+      // Show success message (though we're navigating away)
+      setSaveMessage({
+        type: 'success',
+        text: 'Project deleted successfully!',
+      });
+    } catch (error: any) {
+      console.error('Failed to delete project:', error);
+      setSaveMessage({
+        type: 'error',
+        text: error.message || 'Failed to delete project. Please try again.',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -428,10 +483,65 @@ export default function ProjectSettingsPage() {
                   Permanently delete this project and all associated data. This cannot be undone.
                 </p>
               </div>
-              <Button variant="destructive" size="sm" className="w-full sm:w-auto">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Project
-              </Button>
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="w-full sm:w-auto">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Project
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-5 w-5" />
+                      Delete Project
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete <strong>"{project?.name}"</strong>?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <div className="rounded-md bg-destructive/10 p-4 text-sm">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-destructive">
+                          This action cannot be undone
+                        </h3>
+                        <div className="mt-2 text-destructive/80">
+                          <p>This will permanently delete:</p>
+                          <ul className="mt-2 list-disc space-y-1 pl-5">
+                            <li>All project data and settings</li>
+                            <li>All tasks and their history</li>
+                            <li>All forms and submissions</li>
+                            <li>All site diary entries</li>
+                            <li>All member access to this project</li>
+                          </ul>
+                          {current?.id === project?.id && (
+                            <p className="mt-3 font-medium">
+                              Note: This is your current project. You will be automatically switched
+                              to another project if available.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteProject}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete Project'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>
