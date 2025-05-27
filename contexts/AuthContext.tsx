@@ -120,6 +120,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Error syncing avatar to user_profiles:', syncError);
           }
         }
+
+        if (authAvatarUrl !== dbAvatarUrl) {
+          console.log('🔄 AuthContext: Syncing avatar from auth to user metadata');
+          await supabase.auth.updateUser({
+            data: {
+              avatar_url: dbAvatarUrl,
+            },
+          });
+        }
       }
 
       const organizationId =
