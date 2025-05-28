@@ -20,7 +20,7 @@ First use `npx supabase migration new ` and attach the file name at the end of t
 For example:
 
 ```
-20240906123045_create_profiles.sql
+npx supabase migration new create_profiles
 ```
 
 ## SQL Guidelines

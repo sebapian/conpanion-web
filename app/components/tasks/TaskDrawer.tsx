@@ -10,7 +10,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { X, Pencil, Check, Send, Plus, Trash2 } from 'lucide-react';
+import { X, Pencil, Check, Send, Plus, Trash2, ExternalLink } from 'lucide-react';
 import StatusPill from './StatusPill';
 import PriorityPill from './PriorityPill';
 import { useState, useRef, useEffect } from 'react';
@@ -26,6 +26,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { TaskWithRelations } from '@/app/protected/tasks/models';
 import { AssigneeSelector } from '@/components/AssigneeSelector';
 import { ProjectMember } from '@/hooks/useProjectMembers';
+import Link from 'next/link';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 type Status = Database['public']['Tables']['statuses']['Row'];
@@ -633,6 +634,12 @@ export function TaskDrawer({
                 refreshTasks={refreshTasks}
                 className="px-3 py-1"
               />
+              <Link href={`/protected/tasks/${task.id}`} className="ml-auto">
+                <Button size="sm" variant="outline" className="flex items-center gap-1">
+                  <ExternalLink size={14} />
+                  <span>Open full page</span>
+                </Button>
+              </Link>
             </div>
             {editingTitle ? (
               <div className="flex flex-col">

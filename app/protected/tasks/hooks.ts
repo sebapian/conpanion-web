@@ -527,3 +527,221 @@ export const useTaskMetadata = (taskId: number) => {
 
   return { metadata, loading, error, setMetadataValue };
 };
+
+export const useTask = (taskId: number | string) => {
+  const [task, setTask] = useState<TaskWithRelations | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  const getTask = useCallback(async () => {
+    if (!taskId) {
+      setTask(null);
+      setLoading(false);
+      return;
+    }
+
+    // Convert taskId to number for consistent usage with Supabase
+    const numericTaskId = typeof taskId === 'string' ? parseInt(taskId) : taskId;
+
+    setLoading(true);
+    setError(null);
+    const supabase = getSupabaseClient();
+
+    try {
+      // Fetch the task with direct relationships
+      const { data: rawTask, error: taskError } = await supabase
+        .from('tasks')
+        .select(
+          `
+          *,
+          priorities (*),
+          statuses (*)
+        `,
+        )
+        .eq('id', numericTaskId)
+        .single();
+
+      if (taskError) {
+        console.error('Error fetching task:', taskError);
+        setError(taskError.message);
+        setTask(null);
+        setLoading(false);
+        return;
+      }
+
+      if (!rawTask) {
+        setTask(null);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch assignees separately
+      const { data: assignees, error: assigneesError } = await supabase
+        .from('entity_assignees')
+        .select('entity_id, user_id')
+        .eq('entity_type', 'task')
+        .eq('entity_id', numericTaskId);
+
+      if (assigneesError) {
+        console.error('Error fetching assignees:', assigneesError);
+      }
+
+      // Fetch labels separately
+      const { data: entityLabels, error: labelsError } = await supabase
+        .from('entity_labels')
+        .select('entity_id, label_id, labels (*)')
+        .eq('entity_type', 'task')
+        .eq('entity_id', numericTaskId);
+
+      if (labelsError) {
+        console.error('Error fetching labels:', labelsError);
+      }
+
+      // Fetch task position for kanban view
+      const { data: taskPosition, error: positionError } = await supabase
+        .from('entity_positions')
+        .select('entity_id, position')
+        .eq('entity_type', 'task')
+        .eq('context', 'kanban')
+        .is('user_id', null)
+        .eq('entity_id', numericTaskId)
+        .single();
+
+      if (positionError && positionError.code !== 'PGRST116') {
+        console.error('Error fetching task position:', positionError);
+      }
+
+      // Fetch task metadata for time estimates
+      const { data: taskMetadata, error: metadataError } = await supabase
+        .from('task_metadata')
+        .select('*')
+        .eq('task_id', numericTaskId);
+
+      if (metadataError) {
+        console.error('Error fetching task metadata:', metadataError);
+      }
+
+      // Get unique user IDs from assignees for user info
+      const userIds = Array.from(
+        new Set((assignees || []).map((a: { user_id: string }) => a.user_id)),
+      );
+
+      // Fetch user details if we have any assignees
+      let usersData: any[] = [];
+      if (userIds.length > 0) {
+        try {
+          const { data: users, error: usersError } = await supabase.rpc('get_user_details', {
+            user_ids: userIds,
+          });
+
+          if (usersError && usersError.code !== 'PGRST116') {
+            // Ignore if RPC doesn't exist yet
+            console.error('Error fetching users:', usersError);
+          }
+
+          // Map the updated function response to include user_profiles data
+          usersData =
+            users?.map((user: any) => ({
+              id: user.id,
+              raw_user_meta_data: user.raw_user_meta_data || {
+                name: 'User ' + user.id.substring(0, 6),
+              },
+              user_profiles:
+                user.global_avatar_url || user.global_display_name
+                  ? {
+                      global_avatar_url: user.global_avatar_url,
+                      global_display_name: user.global_display_name,
+                    }
+                  : null,
+            })) ||
+            userIds.map((id) => ({
+              id,
+              raw_user_meta_data: { name: 'User ' + id.substring(0, 6) },
+              user_profiles: null,
+            }));
+        } catch (err) {
+          console.error('Exception fetching user details:', err);
+          // Provide fallback user data
+          usersData = userIds.map((id) => ({
+            id,
+            raw_user_meta_data: { name: 'User ' + id.substring(0, 6) },
+            user_profiles: null,
+          }));
+        }
+      }
+
+      // Get task's assignees
+      const taskAssignees =
+        assignees?.filter((a) => a.entity_id === rawTask.id).map((a) => a.user_id) || [];
+
+      // Get task's labels
+      const taskLabels =
+        entityLabels?.filter((l) => l.entity_id === rawTask.id).map((l) => l.labels) || [];
+
+      // Get task's position
+      const position = taskPosition?.position || null;
+
+      // Get task's metadata
+      const taskMetadataItems = taskMetadata || [];
+
+      // Convert metadata array to object for easier access
+      const metadataObj =
+        taskMetadataItems?.reduce(
+          (acc, item) => {
+            if (item.title) {
+              acc[item.title] = item.value;
+            }
+            return acc;
+          },
+          {} as Record<string, string | null>,
+        ) || {};
+
+      // Extract hours from metadata for convenience
+      const estimatedHours = parseFloat(metadataObj['estimated_hours'] || '0');
+      const actualHours = parseFloat(metadataObj['actual_hours'] || '0');
+
+      const taskWithRelations = {
+        ...rawTask,
+        assignees: taskAssignees,
+        entity_assignees:
+          assignees?.map((a) => ({
+            entity_id: a.entity_id,
+            user_id: a.user_id,
+            users: usersData?.find((u) => u.id === a.user_id) || {
+              id: a.user_id,
+              raw_user_meta_data: { name: 'Unknown' },
+            },
+          })) || [],
+        entity_labels:
+          entityLabels?.map((l) => ({
+            entity_id: l.entity_id,
+            label_id: l.label_id,
+            labels: l.labels,
+          })) || [],
+        labels: taskLabels,
+        metadata: taskMetadataItems || [],
+        metadataObj,
+        estimated_hours: isNaN(estimatedHours) ? null : estimatedHours,
+        actual_hours: isNaN(actualHours) ? null : actualHours,
+        position: position,
+        priorities: rawTask.priorities,
+        statuses: rawTask.statuses,
+      } as TaskWithRelations;
+
+      setTask(taskWithRelations);
+    } catch (error) {
+      console.error('Error fetching task:', error);
+      setError('Failed to load task data');
+      setTask(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [taskId, user]);
+
+  useEffect(() => {
+    getTask();
+  }, [getTask]);
+
+  return { task, loading, error, refresh: getTask };
+};
